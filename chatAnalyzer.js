@@ -182,9 +182,7 @@ async function analyzeMessagesWithGPT(messages) {
                 'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
                 'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
                 'béo', 'ngu', 'đần', 'ngốc', 'dốt',
-                'gay', 'les', 'bắc kỳ', 'nam kỳ',
-                'yêu', 'ghét', 'tức', 'giận',
-                'đông', 'nhi', 'mod', 'admin', 'ad'
+                'gay', 'les', 'bắc kỳ', 'nam kỳ', 'anti'
             ];
 
             const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
