@@ -19,7 +19,8 @@ const {
     createSpamWarningEmbed,
     getUserStats
 } = require('./antiSpam');
-const { connectToDatabase, isDatabaseConnected } = require('./database');
+const { connectToDatabase, isDatabaseConnected, getDatabase } = require('./database');
+const { initializeChatAnalyzer, processChatAnalyzerCommands } = require('./chatAnalyzerIntegration');
 const path = require('path');
 const fs = require('fs');
 
@@ -206,6 +207,9 @@ client.once('ready', async () => {
     try {
         await connectToDatabase();
         console.log('✅ Database connection OK');
+        
+        // Khởi tạo Chat Analyzer
+        initializeChatAnalyzer(client, getDatabase());
     } catch (error) {
         console.error('❌ Database connection failed:', error);
         console.log('⚠️ Bot sẽ hoạt động với fallback mode (quota sẽ reset khi restart)');
@@ -262,6 +266,10 @@ client.on('messageCreate', async message => {
         await message.reply({ embeds: [limitEmbed] });
         return;
     }
+    
+    // Xử lý Chat Analyzer commands
+    const chatAnalyzerHandled = await processChatAnalyzerCommands(message, commandName, getDatabase());
+    if (chatAnalyzerHandled) return;
 
     try {
         switch (commandName) {
