@@ -50,31 +50,64 @@ async function checkMessageViolation(message) {
     
     // Danh sách từ cấm gốc
     const baseBannedWords = [
-        'me', 'loz', 'dm', 'du', 'deo', 'dcm', 'dit',
-        'beo', 'ngu', 'dan', 'ngoc', 'dot',
-        'bac ky', 'nam ky', 'anti'
+        // Chửi thề cơ bản - LUÔN vi phạm
+        'me', 'loz', 'lz', 'dm', 'du', 'deo', 'dcm', 'dit',
+        'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz', 'lzzzz',
+        'dcm', 'dcl', 'dcmn', 'dclm', 'dcmd', 'dcld',
+        'du', 'dut', 'dum', 'dun', 'dup', 'duq',
+        'deo', 'deo', 'deo', 'deo', 'deo',
+        'dit', 'dit', 'dit', 'dit', 'dit',
+        // Chửi về vùng miền - LUÔN vi phạm
+        'bac ky', 'nam ky'
     ];
     
-    // Danh sách từ cấm có dấu
+    // Danh sách từ cấm có dấu (chỉ những từ LUÔN vi phạm - chửi thề rõ ràng)
     const accentedBannedWords = [
-        'mẹ', 'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít',
-        'béo', 'ngu', 'đần', 'ngốc', 'dốt',
-        'gay', 'les', 'bắc kỳ', 'nam kỳ', 'anti'
+        // Chửi thề cơ bản - LUÔN vi phạm
+        'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít', 'địt', 'đụt', 'đụm',
+        'đcm', 'đcl', 'đcmn', 'đclm', 'đcmđ', 'đclđ',
+        'đụ', 'đụt', 'đụm', 'đụn', 'đụp', 'đụq',
+        'đéo', 'đéo', 'đéo', 'đéo', 'đéo',
+        'đít', 'địt', 'đít', 'địt', 'đít',
+        // Chửi về vùng miền - LUÔN vi phạm
+        'bắc kỳ', 'nam kỳ', 'bắc cụ', 'nam cụ'
+    ];
+    
+    // Danh sách từ cần AI phân tích ngữ cảnh (có thể hợp lệ trong một số trường hợp)
+    const contextDependentWords = [
+        // Gọi mẹ vs chửi thề
+        'mẹ', 'má', 'mả', 'mồ', 'mổ',
+        // Mô tả ngoại hình vs chế giễu
+        'béo', 'mập', 'gầy', 'xấu', 'đen', 'trắng', 'lùn', 'cao', 'thấp',
+        // Mô tả trí tuệ vs xúc phạm
+        'ngu', 'ngốc', 'dốt', 'đần', 'ngớ', 'ngố',
+        // Khái niệm vs chống đối
+        'anti'
     ];
     
     // Kiểm tra cả text gốc và text đã chuẩn hóa
     const foundBannedWords = [];
     
-    // Kiểm tra text gốc (có dấu)
+    // Kiểm tra text gốc (có dấu) - chỉ những từ luôn vi phạm
     accentedBannedWords.forEach(word => {
-        if (messageText.includes(word)) {
+        const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+        if (wordRegex.test(messageText)) {
             foundBannedWords.push(word);
         }
     });
     
-    // Kiểm tra text đã chuẩn hóa (không dấu)
+    // Kiểm tra từ cần AI phân tích ngữ cảnh - chỉ log để AI xử lý
+    contextDependentWords.forEach(word => {
+        const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+        if (wordRegex.test(messageText)) {
+            console.log(`🤖 Cần AI phân tích ngữ cảnh: "${word}" trong "${messageText}"`);
+        }
+    });
+    
+    // Kiểm tra text đã chuẩn hóa (không dấu) - chỉ khi từ đứng độc lập
     baseBannedWords.forEach(word => {
-        if (normalizedText.includes(word)) {
+        const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+        if (wordRegex.test(normalizedText)) {
             foundBannedWords.push(word);
         }
     });
@@ -91,7 +124,7 @@ async function checkMessageViolation(message) {
                 }
             });
             
-            // Kiểm tra pattern "anti + tên người" (bao gồm biến thể viết sai)
+            // Kiểm tra pattern "anti + tên người" (bao gồm biến thể viết sai và có dấu chấm)
             const antiPatterns = [
                 /anti\s+nhi/i,
                 /anti\s+dong/i,
@@ -112,7 +145,25 @@ async function checkMessageViolation(message) {
                 /4nti\s+nhi/i,
                 /4nti\s+dong/i,
                 /4nti\s+mod/i,
-                /4nti\s+admin/i
+                /4nti\s+admin/i,
+                // Pattern với dấu chấm
+                /a\.n\.t\.i\s+nhi/i,
+                /a\.n\.t\.i\s+dong/i,
+                /a\.n\.t\.i\s+mod/i,
+                /a\.n\.t\.i\s+admin/i,
+                /4\.n\.t\.1\s+nhi/i,
+                /4\.n\.t\.1\s+dong/i,
+                /4\.n\.t\.1\s+mod/i,
+                /4\.n\.t\.1\s+admin/i,
+                // Pattern với khoảng trắng
+                /a\s+n\s+t\s+i\s+nhi/i,
+                /a\s+n\s+t\s+i\s+dong/i,
+                /a\s+n\s+t\s+i\s+mod/i,
+                /a\s+n\s+t\s+i\s+admin/i,
+                /4\s+n\s+t\s+1\s+nhi/i,
+                /4\s+n\s+t\s+1\s+dong/i,
+                /4\s+n\s+t\s+1\s+mod/i,
+                /4\s+n\s+t\s+1\s+admin/i
             ];
             
             antiPatterns.forEach(pattern => {
@@ -122,15 +173,24 @@ async function checkMessageViolation(message) {
             });
     
     if (foundBannedWords.length > 0) {
-        console.log(`🚨 Phát hiện tin nhắn vi phạm ngay lập tức: ${message.author.username} - "${message.content}" - Từ cấm: ${foundBannedWords.join(', ')}`);
+        console.log(`🚨 Phát hiện tin nhắn vi phạm nghiêm trọng: ${message.author.username} - "${message.content}" - Từ cấm: ${foundBannedWords.join(', ')}`);
         
-        // Reply ngay lập tức
-        try {
-            await message.reply({
-                content: `⚠️ <@${message.author.id}> - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!`
-            });
-        } catch (error) {
-            console.error('❌ Lỗi reply tin nhắn vi phạm:', error);
+        // Chỉ cảnh báo với những từ LUÔN vi phạm (chửi thề rõ ràng)
+        const seriousViolations = foundBannedWords.filter(word => 
+            ['mé', 'mịa', 'đm', 'đụ', 'đcm', 'đít', 'địt',
+             'me', 'loz', 'lz', 'dm', 'dcm',
+             'bắc kỳ', 'nam kỳ',
+             'bac ky', 'nam ky'].includes(word.toLowerCase())
+        );
+        
+        if (seriousViolations.length > 0) {
+            try {
+                await message.reply({
+                    content: `⚠️ <@${message.author.id}> - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!`
+                });
+            } catch (error) {
+                console.error('❌ Lỗi reply tin nhắn vi phạm:', error);
+            }
         }
     }
 }

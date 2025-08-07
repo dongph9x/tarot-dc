@@ -4,7 +4,7 @@ const { getChatGPTReading } = require('./chatgptReader');
 // Cấu hình Chat Analyzer
 const CHAT_ANALYZER_CONFIG = {
     TARGET_CHANNEL_ID: process.env.TARGET_CHANNEL_ID || null,
-    ANALYSIS_INTERVAL: 1 * 60 * 1000, // 1 phút
+    ANALYSIS_INTERVAL: 1 * 10 * 1000, // 1 phút
     BATCH_SIZE: 10, // Số tin nhắn xử lý mỗi lần
     ENABLED: process.env.CHAT_ANALYZER_ENABLED === 'true',
     CUSTOM_PROMPT: process.env.CHAT_ANALYZER_PROMPT || null,
@@ -128,36 +128,71 @@ IMPORTANCE: [LOW/MEDIUM/HIGH]
 SUMMARY: [Tóm tắt ngắn gọn nội dung quan trọng, hoặc "Không có gì đáng chú ý"]`;
     }
 
-    // Prompt mặc định - Tối ưu cho kiểm duyệt chat
+    // Prompt mặc định - Tối ưu cho kiểm duyệt chat với AI Context Analysis
     return `Bạn là chuyên gia kiểm duyệt nội dung chat tiếng Việt. Phân tích đoạn chat sau:
 
 ${messageTexts}
 
 **QUY TẮC NGHIÊM NGẶT:**
 
-**HIGH = Cần kiểm duyệt ngay lập tức**
-**MEDIUM = Cần chú ý**
-**LOW = Không cần kiểm duyệt**
+**HIGH = Cần kiểm duyệt ngay lập tức (chửi thề, xúc phạm)**
+**MEDIUM = Cần chú ý (có thể có ý xấu)**
+**LOW = Không cần kiểm duyệt (bình thường)**
 
-**BẮT BUỘC ĐÁNH GIÁ HIGH KHI CÓ BẤT KỲ TỪ NÀO:**
-- "mẹ", "mé", "mịa", "loz", "lz" (và các biến thể như "lozz", "lozzz", "lozzzz", "lzz", "lzzz")
-- "đm", "dm", "đụ", "đéo", "đcm", "đít"
-- "béo", "ngu", "đần", "ngốc", "dốt"
-- "bắc kỳ", "nam kỳ"
+**PHÂN TÍCH NGỮ CẢNH QUAN TRỌNG:**
 
-**QUAN TRỌNG:** Phải nhận diện các biến thể và từ viết tắt. Ví dụ: "lozzzz" = "loz", "ad" = "admin"
+**TỪ CẤM NHƯNG CÓ THỂ HỢP LỆ TRONG NGỮ CẢNH:**
+- "mẹ", "mé", "mịa" → Chỉ HIGH khi dùng để chửi, không HIGH khi gọi mẹ bình thường
+- "ngu", "đần", "ngốc", "dốt" → Chỉ HIGH khi dùng để xúc phạm người khác
+- "béo", "mập", "gầy" → Chỉ HIGH khi dùng để chế giễu người khác, không HIGH khi nói về cân nặng bản thân
+- "anti" → Chỉ HIGH khi dùng để chống đối người khác, không HIGH khi nói về phần mềm/khái niệm
 
-**VÍ DỤ BẮT BUỘC:**
-- "Mé nhà nó chứ" → HIGH (có "mé")
-- "Mẹ nhà nó chứ" → HIGH (có "mẹ") 
-- "Đm mày ngu" → HIGH (có "đm" và "ngu")
-- "loz admin" → HIGH (có "loz" và "admin")
-- "lozz admin" → HIGH (có "lozz" và "admin")
-- "lozzzz ad..." → HIGH (có "lozzzz" và "ad")
-- "lz admin" → HIGH (có "lz" và "admin")
-- "loz ad" → HIGH (có "loz" và "ad")
+**QUY TẮC ĐÁNH GIÁ XÚC PHẠM:**
+- Gọi tên người + từ chế giễu = HIGH (ví dụ: "đông béo", "nhi béo", "nam béo", "dong béo")
+- Thêm "thằng" + tên + từ chế giễu = HIGH (ví dụ: "thằng đông béo", "thằng nhi béo", "thằng nam béo")
+- Nói về bản thân + từ mô tả = LOW (ví dụ: "tôi béo quá", "tôi mập quá")
+
+**QUAN TRỌNG:** Bất kỳ tên người nào + từ chế giễu ngoại hình đều là HIGH!
+
+**VÍ DỤ PHÂN BIỆT:**
+
+**✅ HIGH (chửi thề/xúc phạm):**
+- "Mé nhà nó chứ" → HIGH (chửi thề)
+- "Mẹ nhà nó chứ" → HIGH (chửi thề)
+- "Đm mày ngu" → HIGH (chửi thề + xúc phạm)
+- "loz admin" → HIGH (chửi thề)
+- "Mày ngu quá" → HIGH (xúc phạm)
+- "Béo như heo" → HIGH (chế giễu)
+- "đông béo" → HIGH (gọi tên + chế giễu ngoại hình)
+- "thằng đông béo" → HIGH (xúc phạm + chế giễu ngoại hình)
+- "nhi béo" → HIGH (gọi tên + chế giễu ngoại hình)
+- "thằng nhi béo" → HIGH (xúc phạm + chế giễu ngoại hình)
+- "nam béo" → HIGH (gọi tên + chế giễu ngoại hình)
+- "thằng nam béo" → HIGH (xúc phạm + chế giễu ngoại hình)
+- "anti admin" → HIGH (chống đối admin)
+- "anti nhi" → HIGH (chống đối người khác)
+
+**✅ LOW (bình thường):**
+- "Mẹ tôi đang nấu cơm" → LOW (gọi mẹ bình thường)
+- "Mẹ ơi, con về rồi" → LOW (gọi mẹ bình thường)
+- "Tôi béo quá" → LOW (nói về cân nặng bản thân)
+- "Tôi mập quá" → LOW (nói về cân nặng bản thân)
+- "Tôi gầy quá" → LOW (nói về cân nặng bản thân)
+- "anti virus" → LOW (phần mềm diệt virus)
+- "anti aging" → LOW (chống lão hóa)
 - "Chào mọi người" → LOW
 - "Hello" → LOW
+
+**QUAN TRỌNG:** 
+1. Phải phân tích ngữ cảnh, không chỉ dựa vào từ đơn lẻ!
+2. Bất kỳ tên người nào + từ chế giễu ngoại hình = HIGH!
+3. Thêm "thằng" + tên + từ chế giễu = HIGH (xúc phạm nghiêm trọng)!
+4. Chỉ LOW khi nói về bản thân (tôi, mình, ta) + từ mô tả!
+
+**BẮT BUỘC ĐÁNH GIÁ HIGH KHI:**
+- Có từ "thằng" + tên người + từ chế giễu
+- Có tên người + từ chế giễu ngoại hình
+- Có từ chửi thề rõ ràng
 
 **TRẢ LỜI CHÍNH XÁC THEO FORMAT:**
 IMPORTANCE: [LOW/MEDIUM/HIGH]
@@ -186,31 +221,105 @@ async function analyzeMessagesWithGPT(messages) {
             
             // Danh sách từ cấm gốc
             const baseBannedWords = [
-                'me', 'loz', 'dm', 'du', 'deo', 'dcm', 'dit',
-                'beo', 'ngu', 'dan', 'ngoc', 'dot',
-                'gay', 'les', 'bac ky', 'nam ky', 'anti'
+                // Chửi thề cơ bản - LUÔN vi phạm
+                'me', 'loz', 'lz', 'dm', 'du', 'deo', 'dcm', 'dit',
+                'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz', 'lzzzz',
+                'dcm', 'dcl', 'dcmn', 'dclm', 'dcmd', 'dcld',
+                'du', 'dut', 'dum', 'dun', 'dup', 'duq',
+                'deo', 'deo', 'deo', 'deo', 'deo',
+                'dit', 'dit', 'dit', 'dit', 'dit',
+                // Chửi về vùng miền - LUÔN vi phạm
+                'bac ky', 'nam ky'
             ];
             
-            // Danh sách từ cấm có dấu
+            // Danh sách từ cấm có dấu (chỉ những từ LUÔN vi phạm - chửi thề rõ ràng)
             const accentedBannedWords = [
-                'mẹ', 'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít',
-                'béo', 'ngu', 'đần', 'ngốc', 'dốt',
-                'gay', 'les', 'bắc kỳ', 'nam kỳ', 'anti'
+                // Chửi thề cơ bản - LUÔN vi phạm
+                'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít', 'địt', 'đụt', 'đụm',
+                'đcm', 'đcl', 'đcmn', 'đclm', 'đcmđ', 'đclđ',
+                'đụ', 'đụt', 'đụm', 'đụn', 'đụp', 'đụq',
+                'đéo', 'đéo', 'đéo', 'đéo', 'đéo',
+                'đít', 'địt', 'đít', 'địt', 'đít',
+                // Chửi về vùng miền - LUÔN vi phạm
+                'bắc kỳ', 'nam kỳ', 'bắc cụ', 'nam cụ'
+            ];
+            
+            // Danh sách từ cần AI phân tích ngữ cảnh (có thể hợp lệ trong một số trường hợp)
+            const contextDependentWords = [
+                // Gọi mẹ vs chửi thề
+                'mẹ', 'má', 'mả', 'mồ', 'mổ',
+                // Mô tả ngoại hình vs chế giễu
+                'béo', 'mập', 'gầy', 'xấu', 'đen', 'trắng', 'lùn', 'cao', 'thấp',
+                // Mô tả trí tuệ vs xúc phạm
+                'ngu', 'ngốc', 'dốt', 'đần', 'ngớ', 'ngố',
+                // Khái niệm vs chống đối
+                'anti'
             ];
             
             // Kiểm tra cả text gốc và text đã chuẩn hóa
             const foundBannedWords = [];
             
-            // Kiểm tra text gốc (có dấu)
+            // Kiểm tra text gốc (có dấu) - chỉ những từ luôn vi phạm
             accentedBannedWords.forEach(word => {
-                if (messageText.includes(word)) {
+                const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+                if (wordRegex.test(message.content)) {
                     foundBannedWords.push(word);
                 }
             });
             
-            // Kiểm tra text đã chuẩn hóa (không dấu)
+            // Kiểm tra từ cần AI phân tích ngữ cảnh - tự động đánh giá HIGH cho trường hợp rõ ràng
+            let hasContextViolation = false;
+            let contextViolationReason = '';
+            
+            contextDependentWords.forEach(word => {
+                const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+                if (wordRegex.test(message.content)) {
+                    console.log(`🤖 Cần AI phân tích ngữ cảnh: "${word}" trong "${message.content}"`);
+                    
+                    // Tự động đánh giá HIGH cho trường hợp rõ ràng
+                    const content = message.content.toLowerCase();
+                    
+                    // Kiểm tra pattern "thằng + tên + từ chế giễu"
+                    const thangPattern = /thằng\s+(\w+)\s+(béo|mập|gầy|xấu|đen|trắng|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
+                    if (thangPattern.test(content)) {
+                        hasContextViolation = true;
+                        contextViolationReason = 'Có pattern "thằng + tên + từ chế giễu"';
+                    }
+                    
+                    // Kiểm tra pattern "tên + từ chế giễu"
+                    const namePattern = /(\w+)\s+(béo|mập|gầy|xấu|đen|trắng|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
+                    if (namePattern.test(content)) {
+                        // Loại trừ trường hợp nói về bản thân
+                        if (!content.includes('tôi') && !content.includes('mình') && !content.includes('ta')) {
+                            hasContextViolation = true;
+                            contextViolationReason = 'Có pattern "tên + từ chế giễu" (không phải nói về bản thân)';
+                        }
+                    }
+                }
+            });
+            
+            // Nếu có vi phạm ngữ cảnh rõ ràng, trả về HIGH ngay lập tức
+            if (hasContextViolation) {
+                return {
+                    importance: IMPORTANCE_LEVELS.HIGH,
+                    summary: `Phát hiện xúc phạm ngữ cảnh: ${contextViolationReason}`,
+                    rawResponse: 'Phân tích trực tiếp',
+                    violatingMessages: [{
+                        messageId: message.messageId,
+                        authorId: message.authorId,
+                        authorName: message.authorName,
+                        content: message.content,
+                        importance: IMPORTANCE_LEVELS.HIGH,
+                        summary: contextViolationReason,
+                        bannedWords: ['context_violation']
+                    }]
+                };
+            }
+            
+            // Kiểm tra text đã chuẩn hóa (không dấu) - chỉ khi từ đứng độc lập
             baseBannedWords.forEach(word => {
-                if (normalizedText.includes(word)) {
+                const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+                if (wordRegex.test(normalizedText)) {
                     foundBannedWords.push(word);
                 }
             });
@@ -227,7 +336,7 @@ async function analyzeMessagesWithGPT(messages) {
                 }
             });
             
-            // Kiểm tra pattern "anti + tên người" (bao gồm biến thể viết sai)
+            // Kiểm tra pattern "anti + tên người" (bao gồm biến thể viết sai và có dấu chấm)
             const antiPatterns = [
                 /anti\s+nhi/i,
                 /anti\s+dong/i,
@@ -248,7 +357,25 @@ async function analyzeMessagesWithGPT(messages) {
                 /4nti\s+nhi/i,
                 /4nti\s+dong/i,
                 /4nti\s+mod/i,
-                /4nti\s+admin/i
+                /4nti\s+admin/i,
+                // Pattern với dấu chấm
+                /a\.n\.t\.i\s+nhi/i,
+                /a\.n\.t\.i\s+dong/i,
+                /a\.n\.t\.i\s+mod/i,
+                /a\.n\.t\.i\s+admin/i,
+                /4\.n\.t\.1\s+nhi/i,
+                /4\.n\.t\.1\s+dong/i,
+                /4\.n\.t\.1\s+mod/i,
+                /4\.n\.t\.1\s+admin/i,
+                // Pattern với khoảng trắng
+                /a\s+n\s+t\s+i\s+nhi/i,
+                /a\s+n\s+t\s+i\s+dong/i,
+                /a\s+n\s+t\s+i\s+mod/i,
+                /a\s+n\s+t\s+i\s+admin/i,
+                /4\s+n\s+t\s+1\s+nhi/i,
+                /4\s+n\s+t\s+1\s+dong/i,
+                /4\s+n\s+t\s+1\s+mod/i,
+                /4\s+n\s+t\s+1\s+admin/i
             ];
             
             antiPatterns.forEach(pattern => {
