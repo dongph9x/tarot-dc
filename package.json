@@ -1,0 +1,31 @@
+{
+  "name": "tarot-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot để bói bài tarot với dữ liệu tiếng Việt",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "tarot",
+    "fortune",
+    "vietnamese"
+  ],
+  "author": "Tarot Bot",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "mongodb": "^6.18.0",
+    "openai": "^4.20.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
