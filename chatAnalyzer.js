@@ -128,52 +128,42 @@ IMPORTANCE: [LOW/MEDIUM/HIGH]
 SUMMARY: [Tóm tắt ngắn gọn nội dung quan trọng, hoặc "Không có gì đáng chú ý"]`;
     }
 
-    // Prompt mặc định
-    return `Phân tích đoạn chat sau và đánh giá mức độ quan trọng:
+    // Prompt mặc định - Tối ưu cho kiểm duyệt chat
+    return `Bạn là chuyên gia kiểm duyệt nội dung chat tiếng Việt. Phân tích đoạn chat sau:
 
 ${messageTexts}
 
-**HƯỚNG DẪN PHÂN TÍCH CHI TIẾT:**
+**QUY TẮC NGHIÊM NGẶT:**
 
-**HIGH (Quan trọng cao) - PHẢI ĐÁNH GIÁ HIGH KHI CÓ:**
-- Nhắc đến tên người cụ thể: "A Đông", "Đông", "Nhi", "NoTwo", "anh Đông", "chị Nhi"
-- Nhắc đến vai trò: "Mod", "Admin", "moderator", "administrator"
-- Từ ngữ chửi bới, xúc phạm: "đù", "wtf", "dm", "mẹ", "mịa", "chửi"
-- Từ ngữ châm biếm, xúc phạm: "béo như heo", "béo như con lợn", "ăn như lợn", "ngu như bò"
-- Từ ngữ phân biệt: "gay", "less", "lẩu gà bình thuận", "lgbt", "parky", "bắc kì", "nam kì"
-- Từ ngữ cảm xúc mạnh: "yêu", "ghét", "thích", "thương", "lỗi", "tội lỗi"
-- Thảo luận dự án, công việc quan trọng
-- Quyết định, thống nhất, kế hoạch cụ thể
-- Vấn đề cần giải quyết ngay, khủng hoảng
+**HIGH = Cần kiểm duyệt ngay lập tức**
+**MEDIUM = Cần chú ý**
+**LOW = Không cần kiểm duyệt**
 
-**MEDIUM (Quan trọng trung bình):**
-- Hỏi đáp, tư vấn, góp ý về công việc, cuộc sống
-- Từ liên quan trạng thái: "Block", "ban", "kick"
-- Thảo luận kỹ thuật, chia sẻ kiến thức
+**BẮT BUỘC ĐÁNH GIÁ HIGH KHI CÓ BẤT KỲ TỪ NÀO:**
+- "mẹ", "mé", "loz", "lz" (trong mọi context)
+- "đm", "dm", "đụ", "đéo", "đcm", "đít"
+- "mịa", "đụ", "đéo", "đcm"
+- "béo", "ngu", "đần", "ngốc", "dốt"
+- "gay", "les", "bắc kỳ", "nam kỳ"
+- "yêu", "ghét", "tức", "giận", "ghét"
+- "Đông", "Nhi", "Mod", "Admin" (kể cả khi có từ khác đứng trước như "Anh Đông", "Chị Nhi", "A Mod" hoặc có từ đứng sau như "Đông ơi", "Nhi ơi", "Mod ơi")
 
-**LOW (Không quan trọng):**
-- Chào hỏi thông thường: "Chào mọi người", "Hello", "Hi"
-- Chuyện phiếm: "Đi làm", "Ăn cơm", "Nghỉ ngơi"
-- Emoji, reaction: "👍", "❤️", "😊"
-- Chia sẻ meme, video giải trí
-
-**QUY TẮC QUAN TRỌNG:**
-1. Nếu tin nhắn chứa BẤT KỲ từ nào trong danh sách HIGH → PHẢI đánh giá HIGH
-2. Không được bỏ qua các từ khóa quan trọng
-3. Phải phân tích từng từ một cách cẩn thận
-
-**VÍ DỤ PHÂN TÍCH CHÍNH XÁC:**
-- "A Đông ơi" → HIGH (có tên "Đông")
-- "Mod ơi" → HIGH (có vai trò "Mod")
-- "Admin ơi" → HIGH (có vai trò "Admin")
-- "Em à mày béo như con lợn" → HIGH (có từ châm biếm "béo như con lợn")
+**VÍ DỤ BẮT BUỘC:**
+- "Mé nhà nó chứ" → HIGH (có "mé")
+- "Mẹ nhà nó chứ" → HIGH (có "mẹ") 
+- "Đm mày ngu" → HIGH (có "đm" và "ngu")
+- "Tôi yêu bạn" → HIGH (có "yêu")
+- "A Đông ơi" → HIGH (có "Đông")
+- "Anh Đông" → HIGH (có "Đông")
+- "Chị Nhi" → HIGH (có "Nhi")
+- "Mod ơi" → HIGH (có "Mod")
+- "Admin ơi" → HIGH (có "Admin")
 - "Chào mọi người" → LOW
 - "Hello" → LOW
-- "👍" → LOW
 
-**Trả lời theo format chính xác:**
+**TRẢ LỜI CHÍNH XÁC THEO FORMAT:**
 IMPORTANCE: [LOW/MEDIUM/HIGH]
-SUMMARY: [Tóm tắt ngắn gọn nội dung quan trọng, hoặc "Không có gì đáng chú ý"]`;
+SUMMARY: [Lý do đánh giá ngắn gọn]`;
 }
 
 /**
@@ -188,25 +178,51 @@ async function analyzeMessagesWithGPT(messages) {
             return { importance: IMPORTANCE_LEVELS.LOW, summary: 'Không có tin nhắn để phân tích' };
         }
 
-        const response = await getChatGPTReading('custom', [], prompt);
+        // Gọi OpenAI API trực tiếp cho chat analysis
+        const OpenAI = require('openai');
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "Bạn là một chuyên gia kiểm duyệt nội dung chat tiếng Việt. Bạn phân tích và đánh giá mức độ cần kiểm duyệt một cách chính xác và khách quan."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            max_tokens: 500,
+            temperature: 0.3
+        });
+
+        const responseText = response.choices[0].message.content.trim();
+        
+        console.log(`🤖 GPT Response: ${responseText}`);
         
         // Parse response
-        const lines = response.split('\n');
+        const lines = responseText.split('\n');
         let importance = IMPORTANCE_LEVELS.LOW;
         let summary = 'Không có gì đáng chú ý';
 
         for (const line of lines) {
             if (line.startsWith('IMPORTANCE:')) {
                 const level = line.replace('IMPORTANCE:', '').trim().toLowerCase();
+                console.log(`🔍 Parsed importance: "${level}"`);
                 if (Object.values(IMPORTANCE_LEVELS).includes(level)) {
                     importance = level;
                 }
             } else if (line.startsWith('SUMMARY:')) {
                 summary = line.replace('SUMMARY:', '').trim();
+                console.log(`🔍 Parsed summary: "${summary}"`);
             }
         }
 
-        return { importance, summary, rawResponse: response };
+        return { importance, summary, rawResponse: responseText };
     } catch (error) {
         console.error('❌ Lỗi phân tích GPT:', error);
         return { importance: IMPORTANCE_LEVELS.LOW, summary: 'Lỗi phân tích' };
