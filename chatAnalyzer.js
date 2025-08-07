@@ -140,24 +140,30 @@ ${messageTexts}
 **LOW = Không cần kiểm duyệt**
 
 **BẮT BUỘC ĐÁNH GIÁ HIGH KHI CÓ BẤT KỲ TỪ NÀO:**
-- "mẹ", "mé", "loz", "lz" (trong mọi context)
+- "mẹ", "mé", "mịa", "loz", "lz" (và các biến thể như "lozz", "lozzz", "lozzzz", "lzz", "lzzz")
 - "đm", "dm", "đụ", "đéo", "đcm", "đít"
-- "mịa", "đụ", "đéo", "đcm"
 - "béo", "ngu", "đần", "ngốc", "dốt"
 - "gay", "les", "bắc kỳ", "nam kỳ"
-- "yêu", "ghét", "tức", "giận", "ghét"
+- "ghét", "tức", "giận"
 - "Đông", "Nhi", "Mod", "Admin" (kể cả khi có từ khác đứng trước như "Anh Đông", "Chị Nhi", "A Mod" hoặc có từ đứng sau như "Đông ơi", "Nhi ơi", "Mod ơi")
+- "ad", "admin" (viết tắt hoặc đầy đủ)
+
+**QUAN TRỌNG:** Phải nhận diện các biến thể và từ viết tắt. Ví dụ: "lozzzz" = "loz", "ad" = "admin"
 
 **VÍ DỤ BẮT BUỘC:**
 - "Mé nhà nó chứ" → HIGH (có "mé")
 - "Mẹ nhà nó chứ" → HIGH (có "mẹ") 
 - "Đm mày ngu" → HIGH (có "đm" và "ngu")
-- "Tôi yêu bạn" → HIGH (có "yêu")
 - "A Đông ơi" → HIGH (có "Đông")
 - "Anh Đông" → HIGH (có "Đông")
 - "Chị Nhi" → HIGH (có "Nhi")
 - "Mod ơi" → HIGH (có "Mod")
 - "Admin ơi" → HIGH (có "Admin")
+- "loz admin" → HIGH (có "loz" và "admin")
+- "lozz admin" → HIGH (có "lozz" và "admin")
+- "lozzzz ad..." → HIGH (có "lozzzz" và "ad")
+- "lz admin" → HIGH (có "lz" và "admin")
+- "loz ad" → HIGH (có "loz" và "ad")
 - "Chào mọi người" → LOW
 - "Hello" → LOW
 
@@ -219,6 +225,29 @@ async function analyzeMessagesWithGPT(messages) {
             } else if (line.startsWith('SUMMARY:')) {
                 summary = line.replace('SUMMARY:', '').trim();
                 console.log(`🔍 Parsed summary: "${summary}"`);
+            }
+        }
+
+        // Kiểm tra thêm bằng logic trực tiếp nếu GPT đánh giá LOW
+        if (importance === IMPORTANCE_LEVELS.LOW) {
+            const messageText = messages.map(msg => msg.content.toLowerCase()).join(' ');
+            
+            // Danh sách từ cấm và biến thể
+            const bannedWords = [
+                'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
+                'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
+                'béo', 'ngu', 'đần', 'ngốc', 'dốt',
+                'gay', 'les', 'bắc kỳ', 'nam kỳ',
+                'yêu', 'ghét', 'tức', 'giận',
+                'đông', 'nhi', 'mod', 'admin', 'ad'
+            ];
+
+            const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
+            
+            if (foundBannedWords.length > 0) {
+                importance = IMPORTANCE_LEVELS.HIGH;
+                summary = `Phát hiện từ cấm: ${foundBannedWords.join(', ')}`;
+                console.log(`🔍 Override: Tìm thấy từ cấm "${foundBannedWords.join(', ')}" → HIGH`);
             }
         }
 
@@ -482,6 +511,7 @@ async function sendHighImportanceNotification(client, importantLog, db) {
             }
         }
 
+        // Gửi thông báo đến các user được cấu hình
         for (const userId of CHAT_ANALYZER_CONFIG.NOTIFICATION_USER_IDS) {
             try {
                 const user = await client.users.fetch(userId);
@@ -491,8 +521,132 @@ async function sendHighImportanceNotification(client, importantLog, db) {
                 console.error(`❌ Không thể gửi thông báo đến user ${userId}:`, error.message);
             }
         }
+
+        // Gửi cảnh báo trực tiếp đến channel nếu có
+        await sendChannelWarning(client, importantLog, messages);
     } catch (error) {
         console.error('❌ Lỗi gửi thông báo:', error);
+    }
+}
+
+/**
+ * Gửi cảnh báo trực tiếp đến channel
+ * @param {Object} client - Discord client
+ * @param {Object} importantLog - Log quan trọng
+ * @param {Array} messages - Danh sách tin nhắn
+ */
+async function sendChannelWarning(client, importantLog, messages) {
+    try {
+        const channelId = CHAT_ANALYZER_CONFIG.TARGET_CHANNEL_ID;
+        if (!channelId) return;
+
+        const channel = await client.channels.fetch(channelId);
+        if (!channel) {
+            console.error(`❌ Không tìm thấy channel: ${channelId}`);
+            return;
+        }
+
+        // Tạo embed cảnh báo
+        const warningEmbed = new EmbedBuilder()
+            .setTitle(`⚠️ CẢNH BÁO - NỘI DUNG VI PHẠM`)
+            .setDescription(`**Phát hiện nội dung vi phạm nghiêm trọng!**`)
+            .setColor('#FF6B35') // Màu cam cảnh báo
+            .addFields(
+                {
+                    name: '🚨 Mức Độ',
+                    value: importantLog.importanceLevel.toUpperCase(),
+                    inline: true
+                },
+                {
+                    name: '👤 Tác Giả',
+                    value: importantLog.authors.join(', '),
+                    inline: true
+                },
+                {
+                    name: '📝 Lý Do',
+                    value: importantLog.summary,
+                    inline: false
+                }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Chat Analyzer • Tự động phát hiện' });
+
+        // Thêm nội dung tin nhắn vi phạm
+        if (messages.length > 0) {
+            const messageDetails = messages.map((msg, index) => {
+                const timestamp = new Date(msg.createdAt).toLocaleTimeString('vi-VN');
+                return `**${index + 1}. [${timestamp}] ${msg.authorName}:**\n${msg.content}`;
+            }).join('\n\n');
+
+            if (messageDetails.length > 1024) {
+                const chunks = [];
+                let currentChunk = '';
+                const lines = messageDetails.split('\n');
+                
+                for (const line of lines) {
+                    if ((currentChunk + line).length > 1024) {
+                        if (currentChunk) chunks.push(currentChunk);
+                        currentChunk = line;
+                    } else {
+                        currentChunk += (currentChunk ? '\n' : '') + line;
+                    }
+                }
+                if (currentChunk) chunks.push(currentChunk);
+
+                chunks.forEach((chunk, index) => {
+                    warningEmbed.addFields({
+                        name: index === 0 ? '💬 Nội Dung Vi Phạm' : `💬 Nội Dung (Tiếp)`,
+                        value: chunk,
+                        inline: false
+                    });
+                });
+            } else {
+                warningEmbed.addFields({
+                    name: '💬 Nội Dung Vi Phạm',
+                    value: messageDetails,
+                    inline: false
+                });
+            }
+        }
+
+        // Tag tác giả tin nhắn vi phạm
+        const authorMentions = importantLog.authors.map(author => {
+            // Tìm user ID từ tên tác giả
+            const message = messages.find(msg => msg.authorName === author);
+            return message ? `<@${message.authorId}>` : author;
+        }).join(' ');
+
+        // Tạo message cảnh báo
+        const warningMessage = authorMentions ? 
+            `⚠️ ${authorMentions} - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!` : 
+            '⚠️ Phát hiện sử dụng từ cấm!';
+
+        // Reply vào tin nhắn đầu tiên vi phạm
+        if (messages.length > 0) {
+            const firstMessage = messages[0];
+            try {
+                const messageToReply = await channel.messages.fetch(firstMessage.messageId);
+                await messageToReply.reply({
+                    content: warningMessage
+                });
+            } catch (error) {
+                // Nếu không thể reply (tin nhắn quá cũ), gửi tin nhắn mới
+                console.log(`⚠️ Không thể reply, gửi tin nhắn mới: ${error.message}`);
+                await channel.send({
+                    content: warningMessage
+                });
+            }
+        } else {
+            // Fallback nếu không có tin nhắn
+            await channel.send({
+                content: warningMessage
+            });
+        }
+
+        console.log(`⚠️ Đã gửi cảnh báo đến channel: ${channel.name} (${channelId})`);
+
+    } catch (error) {
+        console.error('❌ Lỗi gửi cảnh báo channel:', error);
     }
 }
 
