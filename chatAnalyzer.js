@@ -4,7 +4,7 @@ const { getChatGPTReading } = require('./chatgptReader');
 // Cấu hình Chat Analyzer
 const CHAT_ANALYZER_CONFIG = {
     TARGET_CHANNEL_ID: process.env.TARGET_CHANNEL_ID || null,
-    ANALYSIS_INTERVAL: 1 * 30 * 1000, // 1 phút
+    ANALYSIS_INTERVAL: 1 * 60 * 1000, // 1 phút
     BATCH_SIZE: 10, // Số tin nhắn xử lý mỗi lần
     ENABLED: process.env.CHAT_ANALYZER_ENABLED === 'true',
     CUSTOM_PROMPT: process.env.CHAT_ANALYZER_PROMPT || null,
@@ -177,15 +177,85 @@ async function analyzeMessagesWithGPT(messages) {
         for (const message of messages) {
             const messageText = message.content.toLowerCase();
             
-            // Danh sách từ cấm và biến thể
-            const bannedWords = [
-                'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
-                'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
+            // Chuẩn hóa text (loại bỏ dấu, ký tự đặc biệt)
+            const normalizedText = messageText
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Loại bỏ dấu
+                .replace(/[^a-z0-9\s]/g, '') // Chỉ giữ chữ cái, số, khoảng trắng
+                .replace(/\s+/g, ' '); // Chuẩn hóa khoảng trắng
+            
+            // Danh sách từ cấm gốc
+            const baseBannedWords = [
+                'me', 'loz', 'dm', 'du', 'deo', 'dcm', 'dit',
+                'beo', 'ngu', 'dan', 'ngoc', 'dot',
+                'gay', 'les', 'bac ky', 'nam ky', 'anti'
+            ];
+            
+            // Danh sách từ cấm có dấu
+            const accentedBannedWords = [
+                'mẹ', 'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít',
                 'béo', 'ngu', 'đần', 'ngốc', 'dốt',
                 'gay', 'les', 'bắc kỳ', 'nam kỳ', 'anti'
             ];
-
-            const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
+            
+            // Kiểm tra cả text gốc và text đã chuẩn hóa
+            const foundBannedWords = [];
+            
+            // Kiểm tra text gốc (có dấu)
+            accentedBannedWords.forEach(word => {
+                if (messageText.includes(word)) {
+                    foundBannedWords.push(word);
+                }
+            });
+            
+            // Kiểm tra text đã chuẩn hóa (không dấu)
+            baseBannedWords.forEach(word => {
+                if (normalizedText.includes(word)) {
+                    foundBannedWords.push(word);
+                }
+            });
+            
+            // Kiểm tra các biến thể với ký tự đặc biệt
+            const specialVariants = [
+                'm3', 'm3', 'l0z', 'l0zz', 'd1t', 'd1t', 'b30', 'ngu', 'd4n', 'ng0c', 'd0t',
+                'g4y', 'l3s', 'b4c', 'n4m', '4nt1'
+            ];
+            
+            specialVariants.forEach(word => {
+                if (messageText.includes(word)) {
+                    foundBannedWords.push(word);
+                }
+            });
+            
+            // Kiểm tra pattern "anti + tên người" (bao gồm biến thể viết sai)
+            const antiPatterns = [
+                /anti\s+nhi/i,
+                /anti\s+dong/i,
+                /anti\s+mod/i,
+                /anti\s+admin/i,
+                /4nt1\s+nhi/i,
+                /4nt1\s+dong/i,
+                /4nt1\s+mod/i,
+                /4nt1\s+admin/i,
+                /annti\s+nhi/i,
+                /annti\s+dong/i,
+                /annti\s+mod/i,
+                /annti\s+admin/i,
+                /4nnt1\s+nhi/i,
+                /4nnt1\s+dong/i,
+                /4nnt1\s+mod/i,
+                /4nnt1\s+admin/i,
+                /4nti\s+nhi/i,
+                /4nti\s+dong/i,
+                /4nti\s+mod/i,
+                /4nti\s+admin/i
+            ];
+            
+            antiPatterns.forEach(pattern => {
+                if (pattern.test(messageText)) {
+                    foundBannedWords.push('anti pattern');
+                }
+            });
             
             if (foundBannedWords.length > 0) {
                 messageAnalysisResults.push({
