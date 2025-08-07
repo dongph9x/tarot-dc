@@ -133,35 +133,42 @@ SUMMARY: [Tóm tắt ngắn gọn nội dung quan trọng, hoặc "Không có g�
 
 ${messageTexts}
 
-**HƯỚNG DẪN PHÂN TÍCH:**
+**HƯỚNG DẪN PHÂN TÍCH CHI TIẾT:**
 
-**HIGH (Quan trọng cao):**
-Những trường hợp dới dây sẽ thuộc HIGH:
-- Nhắc đến ai đó có tên: Nhi, Đông, NoTwo
-- Nhắc đến vai trò: Mod, Admin...
-- Dùng những từ nóng như: đù, wtf, căng, mẹ, mịa, chửi...
-- Dùng những từ mang cảm xúc như: yêu, ghét, thích, thương, lỗi, tội lỗi...
-- Dùng những từ mang tính chât phân biệt: gay, less, lẩu gà bình thuận, lgbt, parky, bắc kì, nam kì...
-- Dùng những từ mang tính chất châm biếm, xúc phạm nghiêm trọng: béo như heo, ăn như lợn...
+**HIGH (Quan trọng cao) - PHẢI ĐÁNH GIÁ HIGH KHI CÓ:**
+- Nhắc đến tên người cụ thể: "A Đông", "Đông", "Nhi", "NoTwo", "anh Đông", "chị Nhi"
+- Nhắc đến vai trò: "Mod", "Admin", "moderator", "administrator"
+- Từ ngữ chửi bới, xúc phạm: "đù", "wtf", "dm", "mẹ", "mịa", "chửi"
+- Từ ngữ châm biếm, xúc phạm: "béo như heo", "béo như con lợn", "ăn như lợn", "ngu như bò"
+- Từ ngữ phân biệt: "gay", "less", "lẩu gà bình thuận", "lgbt", "parky", "bắc kì", "nam kì"
+- Từ ngữ cảm xúc mạnh: "yêu", "ghét", "thích", "thương", "lỗi", "tội lỗi"
+- Thảo luận dự án, công việc quan trọng
+- Quyết định, thống nhất, kế hoạch cụ thể
+- Vấn đề cần giải quyết ngay, khủng hoảng
 
 **MEDIUM (Quan trọng trung bình):**
 - Hỏi đáp, tư vấn, góp ý về công việc, cuộc sống
-- Từ liên quan trạng thái: Block, ban....
+- Từ liên quan trạng thái: "Block", "ban", "kick"
+- Thảo luận kỹ thuật, chia sẻ kiến thức
 
 **LOW (Không quan trọng):**
-- Chào hỏi, chuyện phiếm, spam
-- Emoji, reaction, tin nhắn ngắn
+- Chào hỏi thông thường: "Chào mọi người", "Hello", "Hi"
+- Chuyện phiếm: "Đi làm", "Ăn cơm", "Nghỉ ngơi"
+- Emoji, reaction: "👍", "❤️", "😊"
 - Chia sẻ meme, video giải trí
 
-**VÍ DỤ PHÂN TÍCH:**
-- "a Đông, ah Đông, anh Đông" → HIGH
-- "chị Nhi, c Nhi, ch Nhi, chi Nhi" → HIGH  
-- "Mod, Admin" → HIGH
-- "Yêu, ghét, chửi, xin lỗi" → HIGH
-- "Căng, đù, wtf, dm, mẹ, mịa..." → HIGH
-- "Ban, Block" → MEDIUM
-- "Chào mọi người, mọi người ăn chưa, mọi người có khỏe không..." → MEDIUM
-- "Hello, đi làm, ăn cơm...." → LOW
+**QUY TẮC QUAN TRỌNG:**
+1. Nếu tin nhắn chứa BẤT KỲ từ nào trong danh sách HIGH → PHẢI đánh giá HIGH
+2. Không được bỏ qua các từ khóa quan trọng
+3. Phải phân tích từng từ một cách cẩn thận
+
+**VÍ DỤ PHÂN TÍCH CHÍNH XÁC:**
+- "A Đông ơi" → HIGH (có tên "Đông")
+- "Mod ơi" → HIGH (có vai trò "Mod")
+- "Admin ơi" → HIGH (có vai trò "Admin")
+- "Em à mày béo như con lợn" → HIGH (có từ châm biếm "béo như con lợn")
+- "Chào mọi người" → LOW
+- "Hello" → LOW
 - "👍" → LOW
 
 **Trả lời theo format chính xác:**
@@ -233,7 +240,7 @@ async function saveImportantAnalysis(db, analysisResult, messages, client = null
 
         // Gửi thông báo nếu có đánh giá HIGH và có client
         if (analysisResult.importance === IMPORTANCE_LEVELS.HIGH && client) {
-            await sendHighImportanceNotification(client, importantLog);
+            await sendHighImportanceNotification(client, importantLog, db);
         }
     } catch (error) {
         console.error('❌ Lỗi lưu phân tích quan trọng:', error);
@@ -384,23 +391,86 @@ function startChatAnalysisScheduler(db, client) {
  * Gửi thông báo đến user khi có đánh giá HIGH
  * @param {Object} client - Discord client
  * @param {Object} importantLog - Log quan trọng
+ * @param {Object} db - Database instance
  */
-async function sendHighImportanceNotification(client, importantLog) {
+async function sendHighImportanceNotification(client, importantLog, db) {
     if (!CHAT_ANALYZER_CONFIG.NOTIFICATION_ENABLED || 
         CHAT_ANALYZER_CONFIG.NOTIFICATION_USER_IDS.length === 0) {
         return;
     }
 
     try {
-        const embed = createImportantAnalysisEmbed(importantLog);
-        embed.setTitle(`🚨 THÔNG BÁO QUAN TRỌNG - ${importantLog.importanceLevel.toUpperCase()}`);
-        embed.setColor('#FF0000'); // Màu đỏ cho thông báo quan trọng
+        // Lấy chi tiết tin nhắn từ database
+        const messageCollection = db.collection(COLLECTIONS.MESSAGE_LOGS);
+        const messages = await messageCollection
+            .find({ messageId: { $in: importantLog.messageIds } })
+            .sort({ createdAt: 1 })
+            .toArray();
+
+        // Tạo embed chi tiết với nội dung tin nhắn
+        const embed = new EmbedBuilder()
+            .setTitle(`🚨 THÔNG BÁO QUAN TRỌNG - ${importantLog.importanceLevel.toUpperCase()}`)
+            .setDescription(importantLog.summary)
+            .setColor('#FF0000') // Màu đỏ cho thông báo quan trọng
+            .addFields(
+                {
+                    name: '📊 Thông Tin',
+                    value: `**Số tin nhắn:** ${importantLog.messageCount}\n**Tác giả:** ${importantLog.authors.join(', ')}`,
+                    inline: true
+                },
+                {
+                    name: '⏰ Thời Gian',
+                    value: new Date(importantLog.createdAt).toLocaleString('vi-VN'),
+                    inline: true
+                }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Chat Analyzer • Tự động phân tích' });
+
+        // Thêm nội dung tin nhắn chi tiết
+        if (messages.length > 0) {
+            const messageDetails = messages.map((msg, index) => {
+                const timestamp = new Date(msg.createdAt).toLocaleTimeString('vi-VN');
+                return `**${index + 1}. [${timestamp}] ${msg.authorName}:**\n${msg.content}`;
+            }).join('\n\n');
+
+            // Chia nhỏ nếu nội dung quá dài
+            if (messageDetails.length > 1024) {
+                const chunks = [];
+                let currentChunk = '';
+                const lines = messageDetails.split('\n');
+                
+                for (const line of lines) {
+                    if ((currentChunk + line).length > 1024) {
+                        if (currentChunk) chunks.push(currentChunk);
+                        currentChunk = line;
+                    } else {
+                        currentChunk += (currentChunk ? '\n' : '') + line;
+                    }
+                }
+                if (currentChunk) chunks.push(currentChunk);
+
+                chunks.forEach((chunk, index) => {
+                    embed.addFields({
+                        name: index === 0 ? '💬 Nội Dung Tin Nhắn' : `💬 Nội Dung (Tiếp)`,
+                        value: chunk,
+                        inline: false
+                    });
+                });
+            } else {
+                embed.addFields({
+                    name: '💬 Nội Dung Tin Nhắn',
+                    value: messageDetails,
+                    inline: false
+                });
+            }
+        }
 
         for (const userId of CHAT_ANALYZER_CONFIG.NOTIFICATION_USER_IDS) {
             try {
                 const user = await client.users.fetch(userId);
                 await user.send({ embeds: [embed] });
-                console.log(`📤 Đã gửi thông báo đến user: ${user.username} (${userId})`);
+                console.log(`📤 Đã gửi thông báo chi tiết đến user: ${user.username} (${userId})`);
             } catch (error) {
                 console.error(`❌ Không thể gửi thông báo đến user ${userId}:`, error.message);
             }
