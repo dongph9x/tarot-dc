@@ -21,6 +21,51 @@ const {
 } = require('./antiSpam');
 const { connectToDatabase, isDatabaseConnected, getDatabase } = require('./database');
 const { initializeChatAnalyzer, processChatAnalyzerCommands } = require('./chatAnalyzerIntegration');
+
+// Function kiểm tra tin nhắn vi phạm ngay lập tức
+async function checkMessageViolation(message) {
+    // Chỉ kiểm tra nếu Chat Analyzer được bật và có target channel
+    if (process.env.CHAT_ANALYZER_ENABLED !== 'true' || !process.env.TARGET_CHANNEL_ID) {
+        return;
+    }
+
+    // Chỉ kiểm tra tin nhắn từ target channel
+    if (message.channelId !== process.env.TARGET_CHANNEL_ID) {
+        return;
+    }
+
+    // Bỏ qua tin nhắn rỗng
+    if (!message.content || message.content.trim() === '') {
+        return;
+    }
+
+    const messageText = message.content.toLowerCase();
+    
+    // Danh sách từ cấm và biến thể
+    const bannedWords = [
+        'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
+        'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
+        'béo', 'ngu', 'đần', 'ngốc', 'dốt',
+        'gay', 'les', 'bắc kỳ', 'nam kỳ',
+        'yêu', 'ghét', 'tức', 'giận',
+        'đông', 'nhi', 'mod', 'admin', 'ad'
+    ];
+
+    const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
+    
+    if (foundBannedWords.length > 0) {
+        console.log(`🚨 Phát hiện tin nhắn vi phạm ngay lập tức: ${message.author.username} - "${message.content}" - Từ cấm: ${foundBannedWords.join(', ')}`);
+        
+        // Reply ngay lập tức
+        try {
+            await message.reply({
+                content: `⚠️ <@${message.author.id}> - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!`
+            });
+        } catch (error) {
+            console.error('❌ Lỗi reply tin nhắn vi phạm:', error);
+        }
+    }
+}
 const path = require('path');
 const fs = require('fs');
 
@@ -226,8 +271,14 @@ client.once('ready', async () => {
 
 // Xử lý message commands
 client.on('messageCreate', async message => {
-    // Bỏ qua bot messages và messages không có prefix
-    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+    // Bỏ qua bot messages
+    if (message.author.bot) return;
+
+    // Kiểm tra tin nhắn vi phạm ngay lập tức (cho Chat Analyzer)
+    await checkMessageViolation(message);
+
+    // Bỏ qua messages không có prefix (cho commands)
+    if (!message.content.startsWith(PREFIX)) return;
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();

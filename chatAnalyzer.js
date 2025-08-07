@@ -4,7 +4,7 @@ const { getChatGPTReading } = require('./chatgptReader');
 // Cấu hình Chat Analyzer
 const CHAT_ANALYZER_CONFIG = {
     TARGET_CHANNEL_ID: process.env.TARGET_CHANNEL_ID || null,
-    ANALYSIS_INTERVAL: 2 * 60 * 1000, // 2 phút
+    ANALYSIS_INTERVAL: 1 * 30 * 1000, // 1 phút
     BATCH_SIZE: 10, // Số tin nhắn xử lý mỗi lần
     ENABLED: process.env.CHAT_ANALYZER_ENABLED === 'true',
     CUSTOM_PROMPT: process.env.CHAT_ANALYZER_PROMPT || null,
@@ -171,6 +171,50 @@ SUMMARY: [Lý do đánh giá ngắn gọn]`;
  */
 async function analyzeMessagesWithGPT(messages) {
     try {
+        // Phân tích từng message riêng biệt
+        const messageAnalysisResults = [];
+        
+        for (const message of messages) {
+            const messageText = message.content.toLowerCase();
+            
+            // Danh sách từ cấm và biến thể
+            const bannedWords = [
+                'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
+                'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
+                'béo', 'ngu', 'đần', 'ngốc', 'dốt',
+                'gay', 'les', 'bắc kỳ', 'nam kỳ',
+                'yêu', 'ghét', 'tức', 'giận',
+                'đông', 'nhi', 'mod', 'admin', 'ad'
+            ];
+
+            const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
+            
+            if (foundBannedWords.length > 0) {
+                messageAnalysisResults.push({
+                    messageId: message.messageId,
+                    authorId: message.authorId,
+                    authorName: message.authorName,
+                    content: message.content,
+                    importance: IMPORTANCE_LEVELS.HIGH,
+                    summary: `Phát hiện từ cấm: ${foundBannedWords.join(', ')}`,
+                    bannedWords: foundBannedWords
+                });
+                console.log(`🔍 Message vi phạm: ${message.authorName} - "${message.content}" - Từ cấm: ${foundBannedWords.join(', ')}`);
+            }
+        }
+
+        // Nếu có message vi phạm, trả về kết quả
+        if (messageAnalysisResults.length > 0) {
+            const allBannedWords = [...new Set(messageAnalysisResults.flatMap(result => result.bannedWords))];
+            return {
+                importance: IMPORTANCE_LEVELS.HIGH,
+                summary: `Phát hiện từ cấm: ${allBannedWords.join(', ')}`,
+                rawResponse: 'Phân tích trực tiếp',
+                violatingMessages: messageAnalysisResults
+            };
+        }
+
+        // Nếu không có vi phạm, thử phân tích bằng GPT
         const prompt = createAnalysisPrompt(messages);
         if (!prompt) {
             return { importance: IMPORTANCE_LEVELS.LOW, summary: 'Không có tin nhắn để phân tích' };
@@ -220,29 +264,6 @@ async function analyzeMessagesWithGPT(messages) {
             }
         }
 
-        // Kiểm tra thêm bằng logic trực tiếp nếu GPT đánh giá LOW
-        if (importance === IMPORTANCE_LEVELS.LOW) {
-            const messageText = messages.map(msg => msg.content.toLowerCase()).join(' ');
-            
-            // Danh sách từ cấm và biến thể
-            const bannedWords = [
-                'mẹ', 'mé', 'mịa', 'loz', 'lz', 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz',
-                'đm', 'dm', 'đụ', 'đéo', 'đcm', 'đít',
-                'béo', 'ngu', 'đần', 'ngốc', 'dốt',
-                'gay', 'les', 'bắc kỳ', 'nam kỳ',
-                'yêu', 'ghét', 'tức', 'giận',
-                'đông', 'nhi', 'mod', 'admin', 'ad'
-            ];
-
-            const foundBannedWords = bannedWords.filter(word => messageText.includes(word));
-            
-            if (foundBannedWords.length > 0) {
-                importance = IMPORTANCE_LEVELS.HIGH;
-                summary = `Phát hiện từ cấm: ${foundBannedWords.join(', ')}`;
-                console.log(`🔍 Override: Tìm thấy từ cấm "${foundBannedWords.join(', ')}" → HIGH`);
-            }
-        }
-
         return { importance, summary, rawResponse: responseText };
     } catch (error) {
         console.error('❌ Lỗi phân tích GPT:', error);
@@ -261,14 +282,19 @@ async function saveImportantAnalysis(db, analysisResult, messages, client = null
     try {
         const collection = db.collection(COLLECTIONS.IMPORTANT_LOGS);
         
+        // Nếu có violatingMessages, chỉ lấy những message vi phạm
+        const violatingMessages = analysisResult.violatingMessages || [];
+        const messagesToLog = violatingMessages.length > 0 ? violatingMessages : messages;
+        
         const importantLog = {
             summary: analysisResult.summary,
-            messageIds: messages.map(msg => msg.messageId),
+            messageIds: messagesToLog.map(msg => msg.messageId || msg.messageId),
             gptResponse: analysisResult.rawResponse || '',
             importanceLevel: analysisResult.importance,
             createdAt: new Date(),
-            messageCount: messages.length,
-            authors: [...new Set(messages.map(msg => msg.authorName))]
+            messageCount: messagesToLog.length,
+            authors: [...new Set(messagesToLog.map(msg => msg.authorName || msg.authorName))],
+            violatingMessages: violatingMessages // Lưu thông tin messages vi phạm
         };
 
         await collection.insertOne(importantLog);
@@ -437,12 +463,18 @@ async function sendHighImportanceNotification(client, importantLog, db) {
     }
 
     try {
-        // Lấy chi tiết tin nhắn từ database
-        const messageCollection = db.collection(COLLECTIONS.MESSAGE_LOGS);
-        const messages = await messageCollection
-            .find({ messageId: { $in: importantLog.messageIds } })
-            .sort({ createdAt: 1 })
-            .toArray();
+        // Sử dụng violatingMessages nếu có,否则 lấy từ database
+        let messagesToShow = [];
+        if (importantLog.violatingMessages && importantLog.violatingMessages.length > 0) {
+            messagesToShow = importantLog.violatingMessages;
+        } else {
+            // Lấy chi tiết tin nhắn từ database
+            const messageCollection = db.collection(COLLECTIONS.MESSAGE_LOGS);
+            messagesToShow = await messageCollection
+                .find({ messageId: { $in: importantLog.messageIds } })
+                .sort({ createdAt: 1 })
+                .toArray();
+        }
 
         // Tạo embed chi tiết với nội dung tin nhắn
         const embed = new EmbedBuilder()
@@ -452,7 +484,7 @@ async function sendHighImportanceNotification(client, importantLog, db) {
             .addFields(
                 {
                     name: '📊 Thông Tin',
-                    value: `**Số tin nhắn:** ${importantLog.messageCount}\n**Tác giả:** ${importantLog.authors.join(', ')}`,
+                    value: `**Số tin nhắn vi phạm:** ${messagesToShow.length}\n**Tác giả:** ${importantLog.authors.join(', ')}`,
                     inline: true
                 },
                 {
@@ -464,10 +496,10 @@ async function sendHighImportanceNotification(client, importantLog, db) {
             .setTimestamp()
             .setFooter({ text: 'Chat Analyzer • Tự động phân tích' });
 
-        // Thêm nội dung tin nhắn chi tiết
-        if (messages.length > 0) {
-            const messageDetails = messages.map((msg, index) => {
-                const timestamp = new Date(msg.createdAt).toLocaleTimeString('vi-VN');
+        // Thêm nội dung tin nhắn vi phạm
+        if (messagesToShow.length > 0) {
+            const messageDetails = messagesToShow.map((msg, index) => {
+                const timestamp = new Date(msg.createdAt || Date.now()).toLocaleTimeString('vi-VN');
                 return `**${index + 1}. [${timestamp}] ${msg.authorName}:**\n${msg.content}`;
             }).join('\n\n');
 
@@ -515,7 +547,7 @@ async function sendHighImportanceNotification(client, importantLog, db) {
         }
 
         // Gửi cảnh báo trực tiếp đến channel nếu có
-        await sendChannelWarning(client, importantLog, messages);
+        await sendChannelWarning(client, importantLog, messagesToShow);
     } catch (error) {
         console.error('❌ Lỗi gửi thông báo:', error);
     }
@@ -601,10 +633,17 @@ async function sendChannelWarning(client, importantLog, messages) {
             }
         }
 
-        // Tag tác giả tin nhắn vi phạm
-        const authorMentions = importantLog.authors.map(author => {
+        // Sử dụng violatingMessages nếu có,否则 sử dụng tất cả messages
+        let messagesToProcess = messages;
+        if (importantLog.violatingMessages && importantLog.violatingMessages.length > 0) {
+            messagesToProcess = importantLog.violatingMessages;
+        }
+
+        // Tag chỉ những user vi phạm
+        const violatingAuthors = [...new Set(messagesToProcess.map(msg => msg.authorName))];
+        const authorMentions = violatingAuthors.map(author => {
             // Tìm user ID từ tên tác giả
-            const message = messages.find(msg => msg.authorName === author);
+            const message = messagesToProcess.find(msg => msg.authorName === author);
             return message ? `<@${message.authorId}>` : author;
         }).join(' ');
 
@@ -613,20 +652,21 @@ async function sendChannelWarning(client, importantLog, messages) {
             `⚠️ ${authorMentions} - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!` : 
             '⚠️ Phát hiện sử dụng từ cấm!';
 
-        // Reply vào tin nhắn đầu tiên vi phạm
-        if (messages.length > 0) {
-            const firstMessage = messages[0];
-            try {
-                const messageToReply = await channel.messages.fetch(firstMessage.messageId);
-                await messageToReply.reply({
-                    content: warningMessage
-                });
-            } catch (error) {
-                // Nếu không thể reply (tin nhắn quá cũ), gửi tin nhắn mới
-                console.log(`⚠️ Không thể reply, gửi tin nhắn mới: ${error.message}`);
-                await channel.send({
-                    content: warningMessage
-                });
+        // Reply vào từng tin nhắn vi phạm
+        if (messagesToProcess.length > 0) {
+            for (const violatingMessage of messagesToProcess) {
+                try {
+                    const messageToReply = await channel.messages.fetch(violatingMessage.messageId);
+                    await messageToReply.reply({
+                        content: `⚠️ <@${violatingMessage.authorId}> - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!`
+                    });
+                } catch (error) {
+                    // Nếu không thể reply (tin nhắn quá cũ), gửi tin nhắn mới
+                    console.log(`⚠️ Không thể reply message ${violatingMessage.messageId}, gửi tin nhắn mới: ${error.message}`);
+                    await channel.send({
+                        content: `⚠️ <@${violatingMessage.authorId}> - Đoạn chat của bạn đã sử dụng từ vi phạm tiêu chuẩn cộng đồng!`
+                    });
+                }
             }
         } else {
             // Fallback nếu không có tin nhắn
