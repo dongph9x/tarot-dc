@@ -144,9 +144,6 @@ ${messageTexts}
 - "đm", "dm", "đụ", "đéo", "đcm", "đít"
 - "béo", "ngu", "đần", "ngốc", "dốt"
 - "gay", "les", "bắc kỳ", "nam kỳ"
-- "ghét", "tức", "giận"
-- "Đông", "Nhi", "Mod", "Admin" (kể cả khi có từ khác đứng trước như "Anh Đông", "Chị Nhi", "A Mod" hoặc có từ đứng sau như "Đông ơi", "Nhi ơi", "Mod ơi")
-- "ad", "admin" (viết tắt hoặc đầy đủ)
 
 **QUAN TRỌNG:** Phải nhận diện các biến thể và từ viết tắt. Ví dụ: "lozzzz" = "loz", "ad" = "admin"
 
@@ -154,11 +151,6 @@ ${messageTexts}
 - "Mé nhà nó chứ" → HIGH (có "mé")
 - "Mẹ nhà nó chứ" → HIGH (có "mẹ") 
 - "Đm mày ngu" → HIGH (có "đm" và "ngu")
-- "A Đông ơi" → HIGH (có "Đông")
-- "Anh Đông" → HIGH (có "Đông")
-- "Chị Nhi" → HIGH (có "Nhi")
-- "Mod ơi" → HIGH (có "Mod")
-- "Admin ơi" → HIGH (có "Admin")
 - "loz admin" → HIGH (có "loz" và "admin")
 - "lozz admin" → HIGH (có "lozz" và "admin")
 - "lozzzz ad..." → HIGH (có "lozzzz" và "ad")
