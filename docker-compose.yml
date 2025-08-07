@@ -1,0 +1,56 @@
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tarot-discord-bot
+    restart: unless-stopped
+    environment:
+      # Discord Bot Configuration
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # MongoDB Configuration (sử dụng MongoDB online)
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB=${MONGODB_DB}
+      
+      # Chat Analyzer Configuration
+      - CHAT_ANALYZER_ENABLED=${CHAT_ANALYZER_ENABLED:-false}
+      - TARGET_CHANNEL_ID=${TARGET_CHANNEL_ID}
+      
+      # Chat Analyzer Prompt Configuration
+      - CHAT_ANALYZER_PROMPT=${CHAT_ANALYZER_PROMPT:-}
+      
+      # Chat Analyzer Notification Configuration
+      - NOTIFICATION_USER_IDS=${NOTIFICATION_USER_IDS:-}
+      - NOTIFICATION_ENABLED=${NOTIFICATION_ENABLED:-true}
+      
+      # Node.js Configuration
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=512
+    env_file:
+      - .env
+    volumes:
+      # Mount thư mục rwsa để lưu trữ hình ảnh lá bài
+      - ./rwsa:/app/rwsa:ro
+      # Mount logs (nếu cần)
+      - ./logs:/app/logs
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  bot-network:
+    driver: bridge

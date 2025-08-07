@@ -1,0 +1,16 @@
+services:
+  discord-bot:
+    # Development overrides
+    environment:
+      - NODE_ENV=development
+      - NODE_OPTIONS=--max-old-space-size=1024
+    volumes:
+      # Mount source code để hot reload
+      - .:/app
+      - /app/node_modules
+      - ./rwsa:/app/rwsa:ro
+      - ./logs:/app/logs
+    command: ["npm", "run", "dev"]
+    ports:
+      # Expose port cho debugging (nếu cần)
+      - "9229:9229"

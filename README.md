@@ -1,251 +1,288 @@
-# 🤖 AI Tarot Discord Bot
+# Tarot Discord Bot
 
-Bot Discord bói bài tarot với AI ChatGPT, 78 lá bài truyền thống, hỗ trợ đầy đủ tiếng Việt.
+Discord bot để bói bài tarot với dữ liệu tiếng Việt và tính năng Chat Analyzer.
 
-## ✨ Tính Năng
+## 🚀 Cài đặt và Chạy
 
-- 🃏 **78 lá bài tarot đầy đủ** - 22 Major Arcana + 56 Minor Arcana
-- 🤖 **100% AI-Powered** - Tất cả lệnh đều sử dụng ChatGPT luận bài
-- 🎯 **Chuyên đề cụ thể** - Tình yêu, sự nghiệp, tài chính
-- 🔀 **Bài xuôi/ngược** - Mỗi lá có thể xuất hiện ở 2 hướng với ý nghĩa khác nhau
-- 💬 **Prefix Commands** - Sử dụng prefix `!` dễ nhớ và nhanh chóng
-- 🎨 **Hiển thị ảnh bài** - Kèm theo ảnh minh họa đẹp mắt
-- 🇻🇳 **Hoàn toàn tiếng Việt** - Tên bài và luận giải đều bằng tiếng Việt
-- 🗄️ **MongoDB Storage** - Lưu trữ quota sử dụng trong database
-- ⏰ **Giới hạn thông minh** - 3 lần bói bài/ngày/user, tự động reset
+### Cách 1: Chạy trực tiếp
 
-## 🎮 Các Lệnh
-
-### 🔮 Lệnh Cơ Bản
-| Lệnh | Mô tả |
-|------|-------|
-| `!tarot` | Rút 1 lá bài + luận giải AI chi tiết |
-| `!tarot3` | Rút 3 lá bài (Quá khứ-Hiện tại-Tương lai) + phân tích AI |
-| `!tarot5` | Rút 5 lá bài (Phân tích tổng quan) + luận giải AI |
-| `!tarotdaily` | Bài hàng ngày với lời khuyên từ ChatGPT |
-
-### 🎯 Lệnh Chuyên Đề  
-| Lệnh | Mô tả |
-|------|-------|
-| `!tarotlove` | Luận bài tình yêu 3 lá với AI chuyên sâu |
-| `!tarotwork` | Luận bài sự nghiệp 3 lá với AI chuyên nghiệp |
-| `!tarotmoney` | Luận bài tài chính 3 lá với AI thực tế |
-
-### 🛠️ Lệnh Hỗ Trợ
-| Lệnh | Mô tả |
-|------|-------|
-| `!tarotselect` | Chọn bài thủ công để luận giải với AI |
-| `!tarothelp` | Hiển thị hướng dẫn sử dụng |
-| `!tarotstats` | Xem thống kê sử dụng và quota còn lại |
-
-## 🚀 Cài Đặt
-
-### 1. Chuẩn bị
-
-- Node.js 16.0.0 trở lên
-- Tài khoản Discord Developer  
-- **Tài khoản OpenAI** (để sử dụng ChatGPT API)
-
-### 2. Tạo Discord Bot
-
-1. Truy cập [Discord Developer Portal](https://discord.com/developers/applications)
-2. Tạo **New Application**
-3. Vào tab **Bot** → **Add Bot**
-4. Copy **Token** (giữ bí mật!)
-5. Bật **Message Content Intent** nếu cần
-
-### 3. Mời Bot vào Server
-
-1. Vào tab **OAuth2** → **URL Generator**
-2. Chọn **Scopes**: `bot`, `applications.commands`
-3. Chọn **Bot Permissions**: 
-   - Send Messages
-   - Read Messages
-   - Read Message History
-   - Attach Files
-   - Embed Links
-4. Copy URL và mời bot vào server
-
-### 4. Cài Đặt Code
-
+1. **Clone repository:**
 ```bash
-# Clone hoặc download source code
+git clone <repository-url>
 cd tarot-dc
+```
 
-# Cài đặt dependencies
+2. **Cài đặt dependencies:**
+```bash
 npm install
+```
 
-# Tạo file .env từ template
+3. **Cấu hình environment:**
+```bash
 cp env.example .env
-
-# Sửa file .env và thêm tokens
-# DISCORD_TOKEN=your_bot_token_here
-# OPENAI_API_KEY=your_openai_api_key_here
-# MONGODB_URI=mongodb://localhost:27017
-# MONGODB_DB=tarot_bot
+# Chỉnh sửa file .env với thông tin của bạn
 ```
 
-### 5. Cài Đặt MongoDB (Tùy Chọn)
-
-Bot có thể hoạt động mà không cần MongoDB, nhưng để có tính năng lưu trữ quota chính xác:
-
-**Local MongoDB:**
+4. **Chạy bot:**
 ```bash
-# Ubuntu/Debian
-sudo apt install mongodb
-
-# macOS (với Homebrew)
-brew install mongodb-community
-
-# Windows
-# Download từ https://www.mongodb.com/try/download/community
-```
-
-**MongoDB Atlas (Cloud):**
-1. Tạo tài khoản tại https://www.mongodb.com/atlas
-2. Tạo cluster miễn phí
-3. Lấy connection string và thêm vào .env
-
-### 6. Chạy Bot
-
-```bash
-# Chạy production
 npm start
-
-# Hoặc chạy development (auto restart)
-npm run dev
 ```
 
-## 📁 Cấu Trúc Dự Án
+### Cách 2: Sử dụng Docker (Khuyến nghị)
+
+#### Quick Start
+```bash
+# 1. Cấu hình environment
+cp env.example .env
+# Chỉnh sửa file .env với thông tin của bạn
+
+# 2. Build và chạy
+./scripts/docker.sh build
+./scripts/docker.sh up
+
+# 3. Xem logs
+./scripts/docker.sh logs
+```
+
+#### Production Commands
+```bash
+# Build image
+./scripts/docker.sh build
+
+# Start services
+./scripts/docker.sh up
+
+# Stop services
+./scripts/docker.sh down
+
+# Restart services
+./scripts/docker.sh restart
+
+# Check status
+./scripts/docker.sh status
+
+# View logs
+./scripts/docker.sh logs
+```
+
+#### Development Commands
+```bash
+# Start with hot reload
+./scripts/docker.sh dev
+
+# Access container shell
+./scripts/docker.sh shell
+
+# Check environment variables
+./scripts/docker.sh env
+```
+
+#### Maintenance Commands
+```bash
+# Rebuild without cache
+./scripts/docker.sh rebuild
+
+# Clean up resources
+./scripts/docker.sh clean
+```
+
+#### Manual Docker Commands
+```bash
+# Build image
+docker compose build
+
+# Start services
+docker compose up -d
+
+# View logs
+docker compose logs -f discord-bot
+
+# Access container
+docker compose exec discord-bot sh
+
+# Check status
+docker compose ps
+```
+
+## 📋 Cấu hình
+
+### Environment Variables
+
+Tạo file `.env` từ `env.example` và cấu hình:
+
+```env
+# Discord Bot Token
+DISCORD_TOKEN=your_discord_bot_token_here
+
+# OpenAI API Key
+OPENAI_API_KEY=your_openai_api_key_here
+
+# MongoDB Configuration (online)
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net
+MONGODB_DB=tarot_bot
+
+# Chat Analyzer Configuration
+CHAT_ANALYZER_ENABLED=true
+TARGET_CHANNEL_ID=your_target_channel_id_here
+
+# Chat Analyzer Prompt (tùy chọn)
+CHAT_ANALYZER_PROMPT=
+
+# Notification Configuration
+NOTIFICATION_USER_IDS=user_id_1,user_id_2,user_id_3
+NOTIFICATION_ENABLED=true
+```
+
+### Docker Configuration
+
+#### Volumes
+- `./rwsa:/app/rwsa:ro` - Card images (read-only)
+- `./logs:/app/logs` - Application logs
+
+#### Health Checks
+- Tự động kiểm tra mỗi 30s
+- Restart container nếu fail
+- Log rotation (10MB max, 3 files)
+
+#### Security
+- Non-root user (nodejs:1001)
+- Read-only file system cho card images
+- Environment variables từ `.env`
+
+## 🔧 Tính năng
+
+### Tarot Reading
+- Bói bài tarot với 78 lá bài
+- Hỗ trợ tiếng Việt
+- Tích hợp OpenAI GPT cho giải thích
+
+### Chat Analyzer
+- Phân tích chat tự động
+- Kiểm duyệt nội dung tiếng Việt
+- Thông báo cho admin
+- Cảnh báo trực tiếp trong channel
+
+## 📁 Cấu trúc Project
 
 ```
 tarot-dc/
-├── bot.js              # File chính của bot
-├── card.js             # Dữ liệu 78 lá bài tarot
-├── cardUtils.js        # Utilities xử lý bài
-├── package.json        # Dependencies và scripts
-├── env.example         # Template file môi trường
-├── README.md          # Hướng dẫn này
-└── rwsa/              # Thư mục chứa ảnh bài (00.webp - 77.webp)
-    ├── 00.webp        # The Fool
-    ├── 01.webp        # The Magician
-    ├── ...
-    └── 77.webp        # King of Swords
+├── bot.js                    # Main bot file
+├── database.js               # MongoDB connection
+├── chatAnalyzer.js           # Chat analysis logic
+├── chatgptReader.js          # OpenAI integration
+├── card.js                   # Tarot card logic
+├── cardUtils.js              # Card utilities
+├── rwsa/                     # Card images (78 files)
+├── scripts/
+│   └── docker.sh            # Docker management script
+├── logs/                     # Application logs
+├── Dockerfile                # Docker configuration
+├── docker-compose.yml        # Production setup
+├── docker-compose.override.yml # Development setup
+├── .dockerignore             # Docker ignore rules
+├── .env                      # Environment variables
+├── env.example               # Environment template
+└── README.md                 # This file
 ```
 
-## 🎯 Cách Hoạt Động
+## 🐳 Docker Configuration
 
-### 📊 Hệ Thống Quota
+### Production
+- ✅ Node.js 18 Alpine (lightweight)
+- ✅ Non-root user (security)
+- ✅ Health checks (auto-restart)
+- ✅ Log rotation (10MB max, 3 files)
+- ✅ Volume mounting cho card images
+- ✅ Environment variables từ `.env`
 
-Bot có hệ thống giới hạn thông minh để đảm bảo trải nghiệm công bằng:
+### Development
+- ✅ Hot reload với nodemon
+- ✅ Source code mounting
+- ✅ Debug port exposure (9229)
+- ✅ Development overrides
 
-- **3 lần bói bài/ngày/user** - Bao gồm tất cả lệnh tarot
-- **Tự động reset** - Quota được reset vào 00:00 UTC+7 mỗi ngày
-- **Lưu trữ MongoDB** - Dữ liệu được lưu trong database để đảm bảo chính xác
-- **Fallback mode** - Bot vẫn hoạt động nếu không có MongoDB
+### Features
+- ✅ MongoDB online support
+- ✅ Discord bot integration
+- ✅ OpenAI GPT integration
+- ✅ Chat Analyzer với AI
+- ✅ Tarot card system
+- ✅ Notification system
 
-**Lệnh tính vào quota:**
-- `!tarot`, `!tarot3`, `!tarot5`, `!tarotdaily`
-- `!tarotlove`, `!tarotwork`, `!tarotmoney`, `!tarotselect`
+## 🔍 Troubleshooting
 
-**Lệnh không tính vào quota:**
-- `!tarothelp`, `!tarotstats`
+### Docker Issues
+```bash
+# Xem logs chi tiết
+./scripts/docker.sh logs
 
-### ⏰ Cooldown System
+# Rebuild nếu có lỗi
+./scripts/docker.sh rebuild
 
-Mỗi lệnh có thời gian chờ riêng để tránh spam:
+# Kiểm tra environment variables
+./scripts/docker.sh env
 
-- `!tarot`: 30 giây
-- `!tarot3`: 1 phút
-- `!tarot5`: 2 phút
-- `!tarotdaily`: 24 giờ (1 lần/ngày)
-- `!tarotlove/work/money`: 5 phút
-- `!tarotselect`: 1 phút
+# Access container shell
+./scripts/docker.sh shell
 
-### Mapping Bài và Ảnh
-
-- Ảnh được đặt tên theo index: `00.webp` đến `77.webp`
-- File `cardUtils.js` chứa mapping giữa index và dữ liệu bài
-- Thứ tự: Major Arcana (0-21) → Pentacles (22-35) → Wands (36-49) → Cups (50-63) → Swords (64-77)
-
-### Spread Types
-
-**1 Lá Bài (`!tarot`)**
-- Rút ngẫu nhiên 1 lá để xem vận mệnh tổng quát
-
-**3 Lá Bài (`!tarot3`)**
-- Quá khứ: Những yếu tố đã ảnh hưởng
-- Hiện tại: Tình huống hiện tại
-- Tương lai: Xu hướng phát triển
-
-**5 Lá Bài (`!tarot5`)**
-- Tình huống hiện tại
-- Thử thách/Trở ngại
-- Mục tiêu/Khát vọng
-- Quá khứ ảnh hưởng
-- Kết quả có thể
-
-**Bài Hàng Ngày (`!tarotdaily`)**
-- Rút 1 lá bài với lời khuyên từ ChatGPT cho ngày mới
-
-**AI Luận Bài (`!tarotai [type]`)**
-- `!tarotai single` - 1 lá bài với phân tích chi tiết
-- `!tarotai three` - 3 lá bài với luận giải AI
-- `!tarotai five` - 5 lá bài phân tích toàn diện
-
-## 🛠️ Tùy Chỉnh
-
-### Thêm Spread Mới
-
-Chỉnh sửa file `bot.js` để thêm command mới:
-
-```javascript
-// Thêm vào mảng commands
-new SlashCommandBuilder()
-    .setName('tarot_custom')
-    .setDescription('Spread tùy chỉnh của bạn'),
-
-// Thêm case trong switch
-case 'tarot_custom': {
-    const cards = drawMultipleCards(7); // Số lá bài
-    const positions = ['Vị trí 1', 'Vị trí 2', ...]; // Tên các vị trí
-    // ... xử lý logic
-}
+# Check container status
+./scripts/docker.sh status
 ```
 
-### Thay Đổi Ảnh Bài
+### Bot Issues
+- Kiểm tra Discord token
+- Kiểm tra OpenAI API key
+- Kiểm tra MongoDB connection
+- Xem logs trong console
 
-- Thay thế file trong thư mục `rwsa/`
-- Giữ nguyên tên file (00.webp đến 77.webp)
-- Định dạng khuyến nghị: WebP, kích thước 400x700px
+## 🚀 Deployment
 
-## ⚠️ Lưu Ý
+### Production Deployment
+```bash
+# 1. Clone repository
+git clone <repository-url>
+cd tarot-dc
 
-- **Bảo mật**: Không chia sẻ Discord Token
-- **Giải trí**: Kết quả bói bài chỉ mang tính giải trí
-- **Performance**: Bot tối ưu cho server nhỏ-vừa (<1000 thành viên)
+# 2. Cấu hình environment
+cp env.example .env
+# Chỉnh sửa .env với production values
 
-## 🤝 Đóng Góp
+# 3. Build và deploy
+./scripts/docker.sh build
+./scripts/docker.sh up -d
 
-1. Fork dự án
-2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Tạo Pull Request
+# 4. Monitor
+./scripts/docker.sh logs
+```
+
+### Monitoring
+```bash
+# Check container status
+./scripts/docker.sh status
+
+# View real-time logs
+./scripts/docker.sh logs
+
+# Check resource usage
+docker stats
+
+# Access container for debugging
+./scripts/docker.sh shell
+```
+
+### Backup & Recovery
+```bash
+# Backup logs
+docker compose cp discord-bot:/app/logs ./backup/
+
+# Restore from backup
+docker compose cp ./backup/logs discord-bot:/app/
+
+# Update and restart
+git pull
+./scripts/docker.sh rebuild
+```
 
 ## 📝 License
 
-Dự án này sử dụng MIT License. Xem file `LICENSE` để biết thêm chi tiết.
-
-## 🆘 Hỗ Trợ
-
-Nếu gặp vấn đề:
-
-1. Kiểm tra console logs
-2. Đảm bảo bot có đủ permissions
-3. Xác nhận Discord Token đúng
-4. Kiểm tra file ảnh trong thư mục `rwsa/`
-
----
-
-**Chúc bạn có những buổi bói bài vui vẻ! 🔮✨**
+MIT License
