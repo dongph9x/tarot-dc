@@ -235,6 +235,18 @@ client.on('messageCreate', async message => {
     // Kiểm tra command có tồn tại không
     if (!commands[commandName]) return;
 
+    // Kiểm tra channel cho phép sử dụng tarot (nếu có cấu hình)
+    const tarotChannelId = process.env.TAROT_CHANNEL_ID;
+    if (tarotChannelId && message.channel.id !== tarotChannelId) {
+        const channelRestrictionEmbed = new EmbedBuilder()
+            .setTitle('🚫 Không được phép')
+            .setDescription(`Chức năng bói bài chỉ được sử dụng trong channel <#${tarotChannelId}>`)
+            .setColor('#FF0000')
+            .setTimestamp();
+        await message.reply({ embeds: [channelRestrictionEmbed] });
+        return;
+    }
+
     const userId = message.author.id;
     
     // Kiểm tra spam

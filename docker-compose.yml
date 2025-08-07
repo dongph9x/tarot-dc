@@ -16,6 +16,9 @@ services:
       - MONGODB_URI=${MONGODB_URI}
       - MONGODB_DB=${MONGODB_DB}
       
+      # Tarot Bot Configuration
+      - TAROT_CHANNEL_ID=${TAROT_CHANNEL_ID:-}
+      
       # Chat Analyzer Configuration
       - CHAT_ANALYZER_ENABLED=${CHAT_ANALYZER_ENABLED:-false}
       - TARGET_CHANNEL_ID=${TARGET_CHANNEL_ID}

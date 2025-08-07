@@ -121,6 +121,10 @@ OPENAI_API_KEY=your_openai_api_key_here
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net
 MONGODB_DB=tarot_bot
 
+# Tarot Bot Configuration
+# ID của channel cho phép sử dụng chức năng bói bài (để trống để cho phép tất cả channels)
+TAROT_CHANNEL_ID=your_tarot_channel_id_here
+
 # Chat Analyzer Configuration
 CHAT_ANALYZER_ENABLED=true
 TARGET_CHANNEL_ID=your_target_channel_id_here
@@ -155,6 +159,7 @@ NOTIFICATION_ENABLED=true
 - Bói bài tarot với 78 lá bài
 - Hỗ trợ tiếng Việt
 - Tích hợp OpenAI GPT cho giải thích
+- **Channel restriction**: Có thể giới hạn sử dụng trong channel cụ thể
 
 ### Chat Analyzer
 - Phân tích chat tự động
