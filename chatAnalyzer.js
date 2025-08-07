@@ -143,7 +143,7 @@ ${messageTexts}
 - "mẹ", "mé", "mịa", "loz", "lz" (và các biến thể như "lozz", "lozzz", "lozzzz", "lzz", "lzzz")
 - "đm", "dm", "đụ", "đéo", "đcm", "đít"
 - "béo", "ngu", "đần", "ngốc", "dốt"
-- "gay", "les", "bắc kỳ", "nam kỳ"
+- "bắc kỳ", "nam kỳ"
 
 **QUAN TRỌNG:** Phải nhận diện các biến thể và từ viết tắt. Ví dụ: "lozzzz" = "loz", "ad" = "admin"
 

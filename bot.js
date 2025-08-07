@@ -52,7 +52,7 @@ async function checkMessageViolation(message) {
     const baseBannedWords = [
         'me', 'loz', 'dm', 'du', 'deo', 'dcm', 'dit',
         'beo', 'ngu', 'dan', 'ngoc', 'dot',
-        'gay', 'les', 'bac ky', 'nam ky', 'anti'
+        'bac ky', 'nam ky', 'anti'
     ];
     
     // Danh sách từ cấm có dấu
