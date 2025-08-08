@@ -336,7 +336,7 @@ function createHelpEmbed() {
             {
                 name: '🎯 Quota Hàng Ngày',
                 value: `
-                • **Tổng quota**: 3 lệnh bói bài/ngày/user
+                • **Tổng quota**: 2 lệnh bói bài/ngày/user
                 • **Bao gồm**: tarot, tarot3, tarot5, tarotdaily, tarotlove, tarotwork, tarotmoney, tarotselect
                 • **Không tính**: tarothelp, tarotstats
                 • **Reset**: 00:00 UTC+7 mỗi ngày
