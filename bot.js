@@ -51,7 +51,7 @@ async function checkMessageViolation(message) {
     // Danh sách từ cấm gốc
     const baseBannedWords = [
         // Chửi thề cơ bản - LUÔN vi phạm
-        'me', 'loz', 'lz', 'dm', 'dcm',
+        'loz', 'lz', 'dm', 'dcm',
         'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz', 'lzzzz',
         'dcm', 'dcl', 'dcmn', 'dclm',
         // Chửi về vùng miền - LUÔN vi phạm
@@ -65,7 +65,7 @@ async function checkMessageViolation(message) {
         'đcm', 'đcl', 'đcmn', 'đclm', 'đcmđ', 'đclđ',
         'đụ', 'đụt', 'đụm', 'đụn', 'đụp', 'đụq',
         'đéo', 'đéo', 'đéo', 'đéo', 'đéo',
-        'đít', 'địt', 'đít', 'địt', 'đít',
+        'đít', 'địt', 'đít', 'địt', 'đít', 'lồn',
         // Chửi về vùng miền - LUÔN vi phạm
         'bắc kỳ', 'nam kỳ', 'bắc cụ', 'nam cụ'
     ];

@@ -236,7 +236,7 @@ async function analyzeMessagesWithGPT(messages) {
                 'đcm', 'đcl', 'đcmn', 'đclm', 'đcmđ', 'đclđ',
                 'đụ', 'đụt', 'đụm', 'đụn', 'đụp', 'đụq',
                 'đéo', 'đéo', 'đéo', 'đéo', 'đéo',
-                'đít', 'địt', 'đít', 'địt', 'đít',
+                'đít', 'địt', 'đít', 'địt', 'đít', 'lồn',
                 // Chửi về vùng miền - LUÔN vi phạm
                 'bắc kỳ', 'nam kỳ', 'bắc cụ', 'nam cụ'
             ];
