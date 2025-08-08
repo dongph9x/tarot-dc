@@ -152,6 +152,10 @@ ${messageTexts}
 - Thêm "thằng" + tên + từ chế giễu = HIGH (ví dụ: "thằng đông béo", "thằng nhi béo", "thằng nam béo")
 - Nói về bản thân + từ mô tả = LOW (ví dụ: "tôi béo quá", "tôi mập quá")
 
+**QUY TẮC ĐẶC BIỆT CHO TỪ "NGU":**
+- Pattern chúc ngủ ngon = LOW (ví dụ: "chúc bạn ngủ ngon", "chuc ban ngu ngon", "ngủ ngon nha")
+- Pattern xúc phạm với "ngu" = HIGH (ví dụ: "mày ngu", "thằng đông ngu", "đông ngu")
+
 **QUAN TRỌNG:** Bất kỳ tên người nào + từ chế giễu ngoại hình đều là HIGH!
 
 **VÍ DỤ PHÂN BIỆT:**
@@ -182,6 +186,13 @@ ${messageTexts}
 - "anti aging" → LOW (chống lão hóa)
 - "Chào mọi người" → LOW
 - "Hello" → LOW
+- "Chuc ban ngu ngon" → LOW (chúc ngủ ngon thân thiện)
+- "Chúc bạn ngủ ngon" → LOW (chúc ngủ ngon thân thiện)
+- "Chúc bé ngu ngon" → LOW (chúc ngủ ngon thân thiện)
+- "Chúc con ngu ngon" → LOW (chúc ngủ ngon thân thiện)
+- "Ngủ ngon nha" → LOW (chúc ngủ ngon thân thiện)
+- "Good night" → LOW (chúc ngủ ngon thân thiện)
+- "GN" → LOW (chúc ngủ ngon thân thiện)
 
 **QUAN TRỌNG:** 
 1. Phải phân tích ngữ cảnh, không chỉ dựa vào từ đơn lẻ!
@@ -193,6 +204,9 @@ ${messageTexts}
 - Có từ "thằng" + tên người + từ chế giễu
 - Có tên người + từ chế giễu ngoại hình
 - Có từ chửi thề rõ ràng
+
+**BẮT BUỘC ĐÁNH GIÁ LOW KHI:**
+- Có pattern chúc ngủ ngon với từ "ngu" (ví dụ: "chúc bạn ngủ ngon", "chuc ban ngu ngon")
 
 **TRẢ LỜI CHÍNH XÁC THEO FORMAT:**
 IMPORTANCE: [LOW/MEDIUM/HIGH]
@@ -248,7 +262,7 @@ async function analyzeMessagesWithGPT(messages) {
                 // Mô tả ngoại hình vs chế giễu
                 'béo', 'mập', 'gầy', 'xấu', 'đen', 'trắng', 'lùn', 'cao', 'thấp',
                 // Mô tả trí tuệ vs xúc phạm
-                'ngu', 'ngốc', 'dốt', 'đần', 'ngớ', 'ngố',
+                'dốt', 'đần', 'ngớ', 'ngố',
                 // Khái niệm vs chống đối
                 'anti'
             ];
@@ -268,13 +282,44 @@ async function analyzeMessagesWithGPT(messages) {
             let hasContextViolation = false;
             let contextViolationReason = '';
             
+            // Kiểm tra pattern thân thiện trước
+            const content = message.content.toLowerCase();
+            const friendlyPatterns = [
+                /chúc\s+(?:ban|bạn|em|anh|chị|bé|con|baby)\s+ngủ\s+ngon/i,
+                /chúc\s+(?:ban|bạn|em|anh|chị|bé|con|baby)\s+ngủ\s+ngon\s+ngu/i,
+                /ngủ\s+ngon\s+(?:ban|bạn|em|anh|chị|bé|con|baby)/i,
+                /ngủ\s+ngon\s+ngu/i,
+                /chúc\s+(?:ban|bạn|em|anh|chị|bé|con|baby)\s+(?:ngủ|sleep)\s+(?:ngon|well)/i,
+                /good\s+night/i,
+                /gn\s+(?:ban|bạn|em|anh|chị|bé|con|baby)/i,
+                /gn\s+ngu/i,
+                // Pattern cho "chuc ban ngu ngon" (không dấu)
+                /chuc\s+(?:ban|bạn|em|anh|chị|bé|con|baby)\s+ngu\s+ngon/i,
+                /chuc\s+(?:ban|bạn|em|anh|chị|bé|con|baby)\s+ngu/i,
+                /ngu\s+ngon/i,
+                // Pattern cho "chúc bé ngu ngon"
+                /chúc\s+bé\s+ngu\s+ngon/i,
+                /chúc\s+con\s+ngu\s+ngon/i,
+                /chúc\s+baby\s+ngu\s+ngon/i
+            ];
+            
+            // Nếu có pattern thân thiện, bỏ qua phân tích ngữ cảnh
+            const isFriendly = friendlyPatterns.some(pattern => pattern.test(content));
+            if (isFriendly) {
+                console.log(`✅ Phát hiện pattern thân thiện: "${message.content}"`);
+                console.log(`✅ Bỏ qua phân tích ngữ cảnh cho pattern thân thiện`);
+                return {
+                    importance: IMPORTANCE_LEVELS.LOW,
+                    summary: 'Pattern thân thiện - chúc ngủ ngon',
+                    rawResponse: 'Phân tích trực tiếp',
+                    violatingMessages: []
+                };
+            }
+            
             contextDependentWords.forEach(word => {
                 const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
                 if (wordRegex.test(message.content)) {
                     console.log(`🤖 Cần AI phân tích ngữ cảnh: "${word}" trong "${message.content}"`);
-                    
-                    // Tự động đánh giá HIGH cho trường hợp rõ ràng
-                    const content = message.content.toLowerCase();
                     
                     // Kiểm tra pattern "thằng + tên + từ chế giễu"
                     const thangPattern = /thằng\s+(\w+)\s+(béo|mập|gầy|xấu|đen|trắng|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
@@ -323,7 +368,7 @@ async function analyzeMessagesWithGPT(messages) {
             
             // Kiểm tra các biến thể với ký tự đặc biệt
             const specialVariants = [
-                'm3', 'm3', 'l0z', 'l0zz', 'd1t', 'd1t', 'b30', 'ngu', 'd4n', 'ng0c', 'd0t',
+                'm3', 'm3', 'l0z', 'l0zz', 'd1t', 'd1t', 'b30', 'd4n', 'ng0c', 'd0t',
                 'g4y', 'l3s', 'b4c', 'n4m', '4nt1'
             ];
             
@@ -927,6 +972,7 @@ module.exports = {
     getChatAnalyzerStats,
     createImportantAnalysisEmbed,
     sendHighImportanceNotification,
+    analyzeMessagesWithGPT,
     CHAT_ANALYZER_CONFIG,
     COLLECTIONS,
     PROCESSING_STATUS,
