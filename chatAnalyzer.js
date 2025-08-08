@@ -328,13 +328,49 @@ async function analyzeMessagesWithGPT(messages) {
                         contextViolationReason = 'Có pattern "thằng + tên + từ chế giễu"';
                     }
                     
-                    // Kiểm tra pattern "tên + từ chế giễu"
+                    // Kiểm tra pattern "tên + từ chế giễu" - chỉ khi thực sự là tên người
                     const namePattern = /(\w+)\s+(béo|mập|gầy|xấu|đen|trắng|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
                     if (namePattern.test(content)) {
                         // Loại trừ trường hợp nói về bản thân
                         if (!content.includes('tôi') && !content.includes('mình') && !content.includes('ta')) {
-                            hasContextViolation = true;
-                            contextViolationReason = 'Có pattern "tên + từ chế giễu" (không phải nói về bản thân)';
+                            // Kiểm tra xem có phải đang mô tả đối tượng không phải người không
+                            const objectPatterns = [
+                                /nhạc\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /bài\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /ca\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /bản\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /màu\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /áo\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /quần\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /giày\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /xe\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /nhà\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /cây\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /hoa\s+\w*\s*(trắng|đen|đẹp|xấu)/i,
+                                /cây\s+\w*\s*(cao|thấp|lùn)/i,
+                                /nhà\s+\w*\s*(cao|thấp|lùn)/i,
+                                /tòa\s+\w*\s*(cao|thấp|lùn)/i,
+                                /cầu\s+\w*\s*(cao|thấp|lùn)/i,
+                                // Thêm pattern cho "này" và "kia"
+                                /nhạc\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /bài\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /ca\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /màu\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /áo\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /quần\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /giày\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /xe\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /nhà\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /cây\s+này\s+(trắng|đen|đẹp|xấu)/i,
+                                /hoa\s+này\s+(trắng|đen|đẹp|xấu)/i
+                            ];
+                            
+                            const isDescribingObject = objectPatterns.some(pattern => pattern.test(content));
+                            
+                            if (!isDescribingObject) {
+                                hasContextViolation = true;
+                                contextViolationReason = 'Có pattern "tên + từ chế giễu" (không phải nói về bản thân và không mô tả đối tượng)';
+                            }
                         }
                     }
                 }

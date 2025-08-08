@@ -139,6 +139,75 @@ async function testChatAnalysis() {
         console.log(`❌ Error: ${error.message}\n`);
     }
 
+    // Test case 5: Nhạc này trắng với đẹp quá (nên là LOW - mô tả nhạc, không phải người)
+    const testCase5 = [
+        {
+            messageId: 'test5',
+            authorId: 'user5',
+            authorName: 'TestUser5',
+            content: 'nhạc này trắng với đẹp quá',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Test Case 5: "nhạc này trắng với đẹp quá"');
+    console.log('Expected: LOW (mô tả nhạc, không phải người)');
+    
+    try {
+        const { analyzeMessagesWithGPT } = require('./chatAnalyzer');
+        const result5 = await analyzeMessagesWithGPT(testCase5);
+        console.log(`Result: ${result5.importance.toUpperCase()} - ${result5.summary}`);
+        console.log(`✅ ${result5.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
+    // Test case 6: Áo này đen quá (nên là LOW - mô tả áo, không phải người)
+    const testCase6 = [
+        {
+            messageId: 'test6',
+            authorId: 'user6',
+            authorName: 'TestUser6',
+            content: 'áo này đen quá',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Test Case 6: "áo này đen quá"');
+    console.log('Expected: LOW (mô tả áo, không phải người)');
+    
+    try {
+        const { analyzeMessagesWithGPT } = require('./chatAnalyzer');
+        const result6 = await analyzeMessagesWithGPT(testCase6);
+        console.log(`Result: ${result6.importance.toUpperCase()} - ${result6.summary}`);
+        console.log(`✅ ${result6.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
+    // Test case 7: Nam béo (nên là HIGH - gọi tên + chế giễu ngoại hình)
+    const testCase7 = [
+        {
+            messageId: 'test7',
+            authorId: 'user7',
+            authorName: 'TestUser7',
+            content: 'nam béo',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Test Case 7: "nam béo"');
+    console.log('Expected: HIGH (gọi tên + chế giễu ngoại hình)');
+    
+    try {
+        const { analyzeMessagesWithGPT } = require('./chatAnalyzer');
+        const result7 = await analyzeMessagesWithGPT(testCase7);
+        console.log(`Result: ${result7.importance.toUpperCase()} - ${result7.summary}`);
+        console.log(`✅ ${result7.importance === IMPORTANCE_LEVELS.HIGH ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
     console.log('🏁 Kết thúc test');
 }
 
