@@ -208,6 +208,52 @@ async function testChatAnalysis() {
         console.log(`❌ Error: ${error.message}\n`);
     }
 
+    // Test case 8: Emoji message (nên là LOW - chỉ emoji, không có nội dung text)
+    const testCase8 = [
+        {
+            messageId: 'test8',
+            authorId: 'user8',
+            authorName: 'TestUser8',
+            content: ':AniNhi~17:',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Test Case 8: ":AniNhi~17:" (emoji)');
+    console.log('Expected: LOW (chỉ emoji, không có nội dung text cần kiểm duyệt)');
+    
+    try {
+        const { analyzeMessagesWithGPT } = require('./chatAnalyzer');
+        const result8 = await analyzeMessagesWithGPT(testCase8);
+        console.log(`Result: ${result8.importance.toUpperCase()} - ${result8.summary}`);
+        console.log(`✅ ${result8.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
+    // Test case 9: Emoji với text (nên là LOW - emoji + text bình thường)
+    const testCase9 = [
+        {
+            messageId: 'test9',
+            authorId: 'user9',
+            authorName: 'TestUser9',
+            content: '👍 Hello',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Test Case 9: "👍 Hello" (emoji + text)');
+    console.log('Expected: LOW (emoji + text bình thường)');
+    
+    try {
+        const { analyzeMessagesWithGPT } = require('./chatAnalyzer');
+        const result9 = await analyzeMessagesWithGPT(testCase9);
+        console.log(`Result: ${result9.importance.toUpperCase()} - ${result9.summary}`);
+        console.log(`✅ ${result9.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
     console.log('🏁 Kết thúc test');
 }
 

@@ -1,43 +1,78 @@
-// Simple test để kiểm tra database connection
+// Simple test để kiểm tra emoji handling
 require('dotenv').config();
+const { analyzeMessagesWithGPT, IMPORTANCE_LEVELS } = require('./chatAnalyzer');
 
-const { connectToDatabase, getDatabase, isDatabaseConnected } = require('./database');
+async function testEmojiHandling() {
+    console.log('🧪 Test Emoji Handling...\n');
 
-async function simpleTest() {
-    console.log('🧪 Simple Test - Kiểm tra Database Connection');
+    // Test emoji-only message
+    const emojiTest = [
+        {
+            messageId: 'emoji1',
+            authorId: 'user1',
+            authorName: 'TestUser',
+            content: ':AniNhi~17:',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Testing emoji-only message: ":AniNhi~17:"');
+    console.log('Expected: LOW (should be ignored as emoji-only)');
     
     try {
-        // Kết nối database
-        console.log('📡 Đang kết nối database...');
-        await connectToDatabase();
-        
-        // Kiểm tra kết nối
-        if (isDatabaseConnected()) {
-            console.log('✅ Database đã kết nối thành công!');
-            
-            const db = getDatabase();
-            
-            // Test tạo collection
-            console.log('🗄️ Test tạo collection...');
-            const collection = db.collection('test_collection');
-            await collection.insertOne({ test: 'data', timestamp: new Date() });
-            console.log('✅ Đã tạo và insert dữ liệu test');
-            
-            // Test đọc dữ liệu
-            const result = await collection.findOne({ test: 'data' });
-            console.log('📖 Dữ liệu đọc được:', result);
-            
-            // Dọn dẹp
-            await collection.deleteMany({ test: 'data' });
-            console.log('🧹 Đã dọn dẹp dữ liệu test');
-            
-        } else {
-            console.log('❌ Database chưa kết nối');
-        }
-        
+        const result = await analyzeMessagesWithGPT(emojiTest);
+        console.log(`Result: ${result.importance.toUpperCase()} - ${result.summary}`);
+        console.log(`✅ ${result.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
     } catch (error) {
-        console.error('❌ Lỗi test:', error);
+        console.log(`❌ Error: ${error.message}\n`);
     }
+
+    // Test emoji with text
+    const emojiWithTextTest = [
+        {
+            messageId: 'emoji2',
+            authorId: 'user2',
+            authorName: 'TestUser',
+            content: '👍 Hello there',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Testing emoji with text: "👍 Hello there"');
+    console.log('Expected: LOW (emoji + normal text)');
+    
+    try {
+        const result = await analyzeMessagesWithGPT(emojiWithTextTest);
+        console.log(`Result: ${result.importance.toUpperCase()} - ${result.summary}`);
+        console.log(`✅ ${result.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
+    // Test multiple emojis
+    const multipleEmojisTest = [
+        {
+            messageId: 'emoji3',
+            authorId: 'user3',
+            authorName: 'TestUser',
+            content: '😀😍🎉',
+            createdAt: new Date()
+        }
+    ];
+
+    console.log('📝 Testing multiple emojis: "😀😍🎉"');
+    console.log('Expected: LOW (only emojis)');
+    
+    try {
+        const result = await analyzeMessagesWithGPT(multipleEmojisTest);
+        console.log(`Result: ${result.importance.toUpperCase()} - ${result.summary}`);
+        console.log(`✅ ${result.importance === IMPORTANCE_LEVELS.LOW ? 'PASS' : 'FAIL'}\n`);
+    } catch (error) {
+        console.log(`❌ Error: ${error.message}\n`);
+    }
+
+    console.log('🏁 Emoji test completed!');
 }
 
-simpleTest(); 
+// Run the test
+testEmojiHandling().catch(console.error); 

@@ -53,6 +53,28 @@ async function saveMessageToDatabase(db, message) {
         return;
     }
 
+    // Bỏ qua emoji-only messages (bao gồm custom emoji và Unicode emoji)
+    const content = message.content.trim();
+    
+    // Kiểm tra emoji-only messages
+    const isEmojiOnly = (text) => {
+        // Loại bỏ custom emoji format (:name:)
+        const withoutCustomEmoji = text.replace(/:[^:]+:/g, '');
+        
+        // Loại bỏ Unicode emoji và các ký tự đặc biệt
+        const withoutUnicodeEmoji = withoutCustomEmoji.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+        
+        // Loại bỏ các ký tự đặc biệt khác
+        const cleanText = withoutUnicodeEmoji.replace(/[^\w\s]/g, '').trim();
+        
+        return cleanText === '';
+    };
+    
+    if (isEmojiOnly(content)) {
+        console.log(`🎭 Bỏ qua emoji-only message: ${content}`);
+        return;
+    }
+
     try {
         const collection = db.collection(COLLECTIONS.MESSAGE_LOGS);
         
@@ -200,6 +222,12 @@ ${messageTexts}
 3. Thêm "thằng" + tên + từ chế giễu = HIGH (xúc phạm nghiêm trọng)!
 4. Chỉ LOW khi nói về bản thân (tôi, mình, ta) + từ mô tả!
 
+**QUY TẮC XỬ LÝ EMOJI:**
+- Emoji-only messages (chỉ chứa emoji, không có text) = LOW
+- Custom emoji format (:name:) = LOW nếu chỉ có emoji
+- Emoji + text bình thường = phân tích theo text
+- Không phân tích nội dung bên trong custom emoji (:name:)
+
 **BẮT BUỘC ĐÁNH GIÁ HIGH KHI:**
 - Có từ "thằng" + tên người + từ chế giễu
 - Có tên người + từ chế giễu ngoại hình
@@ -207,6 +235,7 @@ ${messageTexts}
 
 **BẮT BUỘC ĐÁNH GIÁ LOW KHI:**
 - Có pattern chúc ngủ ngon với từ "ngu" (ví dụ: "chúc bạn ngủ ngon", "chuc ban ngu ngon")
+- Chỉ chứa emoji (bao gồm custom emoji :name:)
 
 **TRẢ LỜI CHÍNH XÁC THEO FORMAT:**
 IMPORTANCE: [LOW/MEDIUM/HIGH]
@@ -225,6 +254,25 @@ async function analyzeMessagesWithGPT(messages) {
         
         for (const message of messages) {
             const messageText = message.content.toLowerCase();
+            
+            // Kiểm tra emoji-only messages trước khi phân tích
+            const isEmojiOnly = (text) => {
+                // Loại bỏ custom emoji format (:name:)
+                const withoutCustomEmoji = text.replace(/:[^:]+:/g, '');
+                
+                // Loại bỏ Unicode emoji và các ký tự đặc biệt
+                const withoutUnicodeEmoji = withoutCustomEmoji.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+                
+                // Loại bỏ các ký tự đặc biệt khác
+                const cleanText = withoutUnicodeEmoji.replace(/[^\w\s]/g, '').trim();
+                
+                return cleanText === '';
+            };
+            
+            if (isEmojiOnly(message.content)) {
+                console.log(`🎭 Bỏ qua emoji-only message trong phân tích: ${message.content}`);
+                continue; // Bỏ qua message này
+            }
             
             // Chuẩn hóa text (loại bỏ dấu, ký tự đặc biệt)
             const normalizedText = messageText
@@ -329,7 +377,7 @@ async function analyzeMessagesWithGPT(messages) {
                     }
                     
                     // Kiểm tra pattern "tên + từ chế giễu" - chỉ khi thực sự là tên người
-                    const namePattern = /(\w+)\s+(béo|mập|gầy|xấu|đen|trắng|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
+                    const namePattern = /(\w+)\s+(béo|mập|gầy|xấu|lùn|cao|thấp|ngu|ngốc|dốt|đần|ngớ|ngố)/i;
                     if (namePattern.test(content)) {
                         // Loại trừ trường hợp nói về bản thân
                         if (!content.includes('tôi') && !content.includes('mình') && !content.includes('ta')) {
@@ -484,6 +532,25 @@ async function analyzeMessagesWithGPT(messages) {
                 summary: `Phát hiện từ cấm: ${allBannedWords.join(', ')}`,
                 rawResponse: 'Phân tích trực tiếp',
                 violatingMessages: messageAnalysisResults
+            };
+        }
+
+        // Kiểm tra nếu tất cả messages đều là emoji-only
+        const isEmojiOnly = (text) => {
+            const withoutCustomEmoji = text.replace(/:[^:]+:/g, '');
+            const withoutUnicodeEmoji = withoutCustomEmoji.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+            const cleanText = withoutUnicodeEmoji.replace(/[^\w\s]/g, '').trim();
+            return cleanText === '';
+        };
+        
+        const allEmojiOnly = messages.every(msg => isEmojiOnly(msg.content));
+        if (allEmojiOnly) {
+            console.log(`🎭 Tất cả messages đều là emoji-only, trả về LOW`);
+            return {
+                importance: IMPORTANCE_LEVELS.LOW,
+                summary: 'Chỉ chứa emoji, không có nội dung text cần kiểm duyệt',
+                rawResponse: 'Phân tích trực tiếp',
+                violatingMessages: []
             };
         }
 
