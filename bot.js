@@ -175,7 +175,7 @@ async function checkMessageViolation(message) {
         // Chỉ cảnh báo với những từ LUÔN vi phạm (chửi thề rõ ràng)
         const seriousViolations = foundBannedWords.filter(word => 
             ['mé', 'mịa', 'đm', 'đụ', 'đcm', 'đít', 'địt',
-             'me', 'loz', 'lz', 'dm', 'dcm',
+             'loz', 'lz', 'dm', 'dcm',
              'bắc kỳ', 'nam kỳ',
              'bac ky', 'nam ky'].includes(word.toLowerCase())
         );

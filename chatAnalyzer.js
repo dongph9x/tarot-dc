@@ -284,17 +284,16 @@ async function analyzeMessagesWithGPT(messages) {
             // Danh sách từ cấm gốc
             const baseBannedWords = [
                 // Chửi thề cơ bản - LUÔN vi phạm
-                'me', 'loz', 'lz', 'dm', 'deo', 'dcm',
+                'loz', 'lz', 'dm', 'dcm',
                 'lozz', 'lozzz', 'lozzzz', 'lzz', 'lzzz', 'lzzzz',
                 'dcm', 'dcl', 'dcmn', 'dclm',
-                // Chửi về vùng miền - LUÔN vi phạm
                 'bac ky', 'nam ky'
             ];
             
             // Danh sách từ cấm có dấu (chỉ những từ LUÔN vi phạm - chửi thề rõ ràng)
             const accentedBannedWords = [
                 // Chửi thề cơ bản - LUÔN vi phạm
-                'mé', 'mịa', 'đm', 'đụ', 'đéo', 'đcm', 'đít', 'địt', 'đụt', 'đụm',
+                'mé', 'mịa', 'đm', 'đéo', 'đcm', 'đít', 'địt', 'đụt', 'đụm',
                 'đcm', 'đcl', 'đcmn', 'đclm', 'đcmđ', 'đclđ',
                 'đụ', 'đụt', 'đụm', 'đụn', 'đụp', 'đụq',
                 'đéo', 'đéo', 'đéo', 'đéo', 'đéo',
