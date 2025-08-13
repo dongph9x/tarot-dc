@@ -379,7 +379,8 @@ client.once('ready', async () => {
         console.log('✅ Database connection OK');
         
         // Khởi tạo Chat Analyzer
-        initializeChatAnalyzer(client, getDatabase());
+        // Phân tích chat
+        // initializeChatAnalyzer(client, getDatabase());
     } catch (error) {
         console.error('❌ Database connection failed:', error);
         console.log('⚠️ Bot sẽ hoạt động với fallback mode (quota sẽ reset khi restart)');
