@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 
 // Danh sách admin IDs (thêm Discord ID của bạn vào đây)
 const ADMIN_IDS = [
-    // '123456789012345678', // Thay bằng Discord ID của bạn
+    '389957152153796608',
 ];
 
 /**

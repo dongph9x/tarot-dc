@@ -19,8 +19,8 @@ const COOLDOWNS = {
     'tarothelp': 10000     // 10 giây
 };
 
-// Giới hạn tổng số lệnh bói bài mỗi ngày cho 1 user (THAY ĐỔI TỪ 10 XUỐNG 2)
-const TOTAL_DAILY_LIMIT = 2;
+// Giới hạn tổng số lệnh bói bài mỗi ngày cho 1 user (THAY ĐỔI TỪ 2 XUỐNG 1)
+const TOTAL_DAILY_LIMIT = 1;
 
 // Các lệnh được tính vào giới hạn tổng (không bao gồm help và stats)
 const TAROT_COMMANDS = [
